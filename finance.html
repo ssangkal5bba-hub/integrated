@@ -4,7 +4,7 @@
     const pw = sessionStorage.getItem('finance_auth');
     if (pw !== 'true') {
       const input = prompt('🔒 이 페이지는 비공개입니다.\n비밀번호를 입력하세요:');
-      if (input !== 'YOUR_PASSWORD_HERE') {
+      if (input !== 'tjdgh123') {
         // 비밀번호 틀리면 메인으로 쫓아냄
         alert('접근 권한이 없습니다.');
         window.location.href = '/';
