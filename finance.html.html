@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>부동산 투자 전략 종합 분석 리포트 (2024년 3월 최신 데이터)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', 'Malgun Gothic', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            color: white;
+            padding: 50px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.8em;
+            margin-bottom: 15px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header .subtitle {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .executive-summary {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+            padding: 40px;
+            margin: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(231, 76, 60, 0.4);
+        }
+        
+        .executive-summary h2 {
+            font-size: 2.2em;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .key-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .stat-card {
+            background: rgba(255,255,255,0.2);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        
+        .content {
+            padding: 40px;
+        }
+        
+        .section {
+            margin-bottom: 50px;
+        }
+        
+        .section h2 {
+            color: #2c3e50;
+            font-size: 2em;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #3498db;
+        }
+        
+        .scenario-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin: 30px 0;
+        }
+        
+        .scenario-card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            border-top: 5px solid #3498db;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .scenario-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.25);
+        }
+        
+        .scenario-card.recommended {
+            border-top-color: #27ae60;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        }
+        
+        .scenario-card.not-recommended {
+            border-top-color: #e74c3c;
+            opacity: 0.7;
+        }
+        
+        .scenario-title {
+            font-size: 1.6em;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .badge {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        
+        .badge-success {
+            background: #27ae60;
+            color: white;
+        }
+        
+        .badge-warning {
+            background: #f39c12;
+            color: white;
+        }
+        
+        .badge-danger {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        th, td {
+            padding: 15px;
+            text-align: left;
+        }
+        
+        th {
+            font-weight: 600;
+            text-align: center;
+        }
+        
+        tbody tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        
+        tbody tr:hover {
+            background-color: #e3f2fd;
+            transition: background-color 0.3s;
+        }
+        
+        .highlight-row {
+            background: linear-gradient(120deg, #ffd89b 0%, #19547b 100%);
+            color: white;
+            font-weight: bold;
+        }
+        
+        .positive {
+            color: #27ae60;
+            font-weight: bold;
+        }
+        
+        .negative {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        
+        .warning {
+            color: #f39c12;
+            font-weight: bold;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 20px 0;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            border-left: 5px solid #3498db;
+        }
+        
+        .alert {
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+            border-left: 5px solid;
+        }
+        
+        .alert-success {
+            background: #d4edda;
+            border-left-color: #28a745;
+            color: #155724;
+        }
+        
+        .alert-warning {
+            background: #fff3cd;
+            border-left-color: #ffc107;
+            color: #856404;
+        }
+        
+        .alert-danger {
+            background: #f8d7da;
+            border-left-color: #dc3545;
+            color: #721c24;
+        }
+        
+        .final-recommendation {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            border-radius: 15px;
+            margin: 40px 0;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+        
+        .final-recommendation h2 {
+            font-size: 2.5em;
+            margin-bottom: 25px;
+            color: white;
+            border-bottom: none;
+        }
+        
+        .timeline {
+            position: relative;
+            padding: 30px 0;
+        }
+        
+        .timeline-item {
+            padding: 20px 30px;
+            margin: 20px 0;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 5px solid #3498db;
+        }
+        
+        .timeline-item h4 {
+            color: #2c3e50;
+            font-size: 1.3em;
+            margin-bottom: 10px;
+        }
+        
+        .footer {
+            background: #2c3e50;
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .mortgage-detail {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 10px;
+            }
+            
+            .header, .content {
+                padding: 20px;
+            }
+            
+            .scenario-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .key-stats {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏢 부동산 투자 전략 종합 분석</h1>
+            <p class="subtitle">2024년 3월 실제 대출 상환 데이터 완전 반영</p>
+            <p style="margin-top: 15px;">분석일: 2024년 3월 | 현금흐름 위기 상황 긴급 분석</p>
+        </div>
+
+        <div class="executive-summary">
+            <h2>🚨 긴급 경고: 현금흐름 위기 심화</h2>
+            <div class="key-stats">
+                <div class="stat-card">
+                    <div>현재 월 대출 부담</div>
+                    <div class="stat-value">290만원</div>
+                    <div>연간 3,480만원 유출</div>
+                </div>
+                <div class="stat-card">
+                    <div>시나리오 1 월 현금흐름</div>
+                    <div class="stat-value">933만원</div>
+                    <div>완전한 흑자 전환</div>
+                </div>
+                <div class="stat-card">
+                    <div>월 현금흐름 개선</div>
+                    <div class="stat-value">270만원</div>
+                    <div>대출 부담 완전 해소</div>
+                </div>
+            </div>
+            <p style="font-size: 1.2em; text-align: center; margin-top: 20px;">
+                <strong>결론: 주택담보대출 원금 상환 부담이 예상보다 23만원 더 높아 상황이 더욱 심각해졌습니다.</strong>
+            </p>
+        </div>
+
+        <div class="content">
+            <div class="section">
+                <h2>1️⃣ 현재 자산 및 대출 현황 (2024년 3월 실제 데이터)</h2>
+                
+                <div class="card">
+                    <h3>📊 보유 자산</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>자산</th>
+                                <th>가액</th>
+                                <th>비고</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>아파트 (실거래가)</td>
+                                <td class="positive">12억 3,000만원</td>
+                                <td>매입가 8억 6,000만원</td>
+                            </tr>
+                            <tr>
+                                <td>예상 매도가</td>
+                                <td class="positive">13억원</td>
+                                <td>양도세 약 24만원</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="card">
+                    <h3>💸 대출 현황 (심각한 현금 유출 확인)</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>대출 종류</th>
+                                <th>잔액</th>
+                                <th>이율</th>
+                                <th>월 이자</th>
+                                <th>월 원금</th>
+                                <th>월 총 부담</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>주택담보대출 (30년 상환)</td>
+                                <td>2억 8,920만원</td>
+                                <td>1.7%</td>
+                                <td class="negative">37.8만원</td>
+                                <td class="negative"><strong>85.1만원</strong></td>
+                                <td class="negative"><strong>122.9만원</strong></td>
+                            </tr>
+                            <tr>
+                                <td>신용대출 (이자만)</td>
+                                <td>8,100만원</td>
+                                <td>5.6%</td>
+                                <td>37.8만원</td>
+                                <td>-</td>
+                                <td>37.8만원</td>
+                            </tr>
+                            <tr>
+                                <td>사업자대출 1</td>
+                                <td>1,500만원</td>
+                                <td>2.0%</td>
+                                <td>2.5만원</td>
+                                <td>83.3만원</td>
+                                <td>85.8만원</td>
+                            </tr>
+                            <tr>
+                                <td>사업자대출 2</td>
+                                <td>750만원</td>
+                                <td>2.0%</td>
+                                <td>1.3만원</td>
+                                <td>41.7만원</td>
+                                <td>43만원</td>
+                            </tr>
+                            <tr class="highlight-row">
+                                <td><strong>합계</strong></td>
+                                <td><strong>3억 9,270만원</strong></td>
+                                <td>평균 2.76%</td>
+                                <td><strong>79.4만원</strong></td>
+                                <td class="negative"><strong>210.1만원</strong></td>
+                                <td class="negative"><strong>289.5만원</strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    
+                    <div class="mortgage-detail">
+                        <h4>📌 주택담보대출 2024년 3월 실제 내역</h4>
+                        <ul>
+                            <li><strong>월 원금 상환:</strong> 850,574원 (기존 예상 62만원보다 23만원 더 높음)</li>
+                            <li><strong>월 이자:</strong> 378,251원</li>
+                            <li><strong>대출 잔액:</strong> 289,195,408원</li>
+                            <li><strong>월 총 상환액:</strong> 1,228,825원 (약 123만원)</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="alert alert-danger">
+                    <h4>🚨 심각한 문제점</h4>
+                    <p>매월 <strong>289.5만원</strong>이 대출 상환으로 빠져나가고 있습니다. 이는 연간 <strong>3,474만원</strong>, 10년간 <strong>3억 4,740만원</strong>의 기회비용을 의미합니다.</p>
+                    <p><strong>특히 주택담보대출의 원금 상환이 예상보다 23만원 더 높은 85.1만원으로, 현금흐름을 극도로 악화시키고 있습니다.</strong></p>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>2️⃣ 안경원 창업 비용</h2>
+                
+                <div class="card">
+                    <h3>💰 초기 투자 비용 및 조달 방안</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>항목</th>
+                                <th>적정 비용</th>
+                                <th>자금 조달</th>
+                                <th>이율</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>인테리어</td>
+                                <td>5,000만원</td>
+                                <td class="positive">정부지원대출</td>
+                                <td>2.0%</td>
+                            </tr>
+                            <tr>
+                                <td>물건 매입 (안경테, 렌즈)</td>
+                                <td>3,000만원</td>
+                                <td>자기자본</td>
+                                <td>-</td>
+                            </tr>
+                            <tr>
+                                <td>기계 매입 (중고)</td>
+                                <td>2,500만원</td>
+                                <td>자기자본</td>
+                                <td>-</td>
+                            </tr>
+                            <tr>
+                                <td>기타 (간판, 비품, 예비비)</td>
+                                <td>2,500만원</td>
+                                <td>자기자본</td>
+                                <td>-</td>
+                            </tr>
+                            <tr class="highlight-row">
+                                <td><strong>총 초기 투자</strong></td>
+                                <td><strong>1억 3,000만원</strong></td>
+                                <td><strong>자본 8천 + 대출 5천</strong></td>
+                                <td><strong>월 상환 20만원</strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>3️⃣ 3가지 시나리오 종합 비교</h2>
+                
+                <div class="scenario-grid">
+                    <div class="scenario-card recommended">
+                        <div class="scenario-title">
+                            시나리오 1: 주택 매도
+                            <span class="badge badge-success">유일한 해답</span>
+                        </div>
+                        <div style="font-size: 2.5em; text-align: center; margin: 20px 0;">⭐⭐⭐⭐⭐</div>
+                        
+                        <table style="margin: 0; box-shadow: none;">
+                            <tbody>
+                                <tr>
+                                    <td>가용자금</td>
+                                    <td class="positive">8억 1,876만원</td>
+                                </tr>
+                                <tr>
+                                    <td>추천 건물가</td>
+                                    <td class="positive">18억원</td>
+                                </tr>
+                                <tr>
+                                    <td>자기자본 비율</td>
+                                    <td class="positive">45.5%</td>
+                                </tr>
+                                <tr>
+                                    <td>월 대출 부담</td>
+                                    <td class="positive">20만원</td>
+                                </tr>
+                                <tr>
+                                    <td>월 현금흐름</td>
+                                    <td class="positive">933만원</td>
+                                </tr>
+                                <tr>
+                                    <td>투자 회수</td>
+                                    <td class="positive">7.3년</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        
+                        <div style="margin-top: 20px; padding: 15px; background: rgba(39, 174, 96, 0.1); border-radius: 10px;">
+                            <strong>핵심 장점:</strong><br>
+                            • 월 대출 부담 269.5만원 완전 해소<br>
+                            • 압도적인 현금흐름 확보<br>
+                            • 안정적인 투자 구조<br>
+                            • 10년 후 45억원 자산
+                        </div>
+                    </div>
+
+                    <div class="scenario-card">
+                        <div class="scenario-title">
+                            시나리오 2: 전세 전환
+                            <span class="badge badge-warning">매우 위험</span>
+                        </div>
+                        <div style="font-size: 2.5em; text-align: center; margin: 20px 0;">⭐</div>
+                        
+                        <table style="margin: 0; box-shadow: none;">
+                            <tbody>
+                                <tr>
+                                    <td>가용자금</td>
+                                    <td class="warning">2억 3,000만원</td>
+                                </tr>
+                                <tr>
+                                    <td>추천 건물가</td>
+                                    <td>12억원</td>
+                                </tr>
+                                <tr>
+                                    <td>자기자본 비율</td>
+                                    <td class="negative">19.2%</td>
+                                </tr>
+                                <tr>
+                                    <td>월 대출 부담</td>
+                                    <td class="negative">169.2만원</td>
+                                </tr>
+                                <tr>
+                                    <td>월 현금흐름</td>
+                                    <td class="warning">752만원</td>
+                                </tr>
+                                <tr>
+                                    <td>투자 회수</td>
+                                    <td class="negative">12.8년</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        
+                        <div style="margin-top: 20px; padding: 15px; background: rgba(255, 193, 7, 0.1); border-radius: 10px;">
+                            <strong>치명적 리스크:</strong><br>
+                            • 자기자본 19%로 극도로 위험<br>
+                            • 월 169만원 대출 부담 지속<br>
+                            • 전세 만기 리스크<br>
+                            • 제한적 투자 규모
+                        </div>
+                    </div>
+
+                    <div class="scenario-card not-recommended">
+                        <div class="scenario-title">
+                            시나리오 3: 월세 전환
+                            <span class="badge badge-danger">절대 불가</span>
+                        </div>
+                        <div style="font-size: 2.5em; text-align: center; margin: 20px 0;">❌</div>
+                        
+                        <table style="margin: 0; box-shadow: none;">
+                            <tbody>
+                                <tr>
+                                    <td>가용자금</td>
+                                    <td class="negative">1억 2,000만원</td>
+                                </tr>
+                                <tr>
+                                    <td>건물 매입</td>
+                                    <td class="negative">불가능</td>
+                                </tr>
+                                <tr>
+                                    <td>월 대출 부담</td>
+                                    <td class="negative">429.5만원</td>
+                                </tr>
+                                <tr>
+                                    <td>월세 수입</td>
+                                    <td>230만원</td>
+                                </tr>
+                                <tr>
+                                    <td>월 현금흐름</td>
+                                    <td class="negative">-160만원</td>
+                                </tr>
+                                <tr>
+                                    <td>투자 가능성</td>
+                                    <td class="negative">파산 위험</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        
+                        <div style="margin-top: 20px; padding: 15px; background: rgba(220, 53, 69, 0.1); border-radius: 10px;">
+                            <strong>재앙적 결과:</strong><br>
+                            • 월 160만원 적자 발생<br>
+                            • 건물 투자 완전 불가능<br>
+                            • 대출 부담 40% 증가<br>
+                            • 가계 파산 위험
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>4️⃣ 시나리오 1 상세 분석 (유일한 해결책)</h2>
+                
+                <div class="card">
+                    <h3>💵 가용자금 계산 (13억원 매도 기준)</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>구분</th>
+                                <th>금액</th>
+                                <th>비고</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>아파트 매도가</td>
+                                <td class="positive">13억원</td>
+                                <td>최근 시세 반영</td>
+                            </tr>
+                            <tr>
+                                <td>주택담보대출 상환</td>
+                                <td class="negative">-2억 8,920만원</td>
+                                <td>2024년 3월 실제 잔액</td>
+                            </tr>
+                            <tr>
+                                <td>신용대출 상환</td>
+                                <td class="negative">-8,100만원</td>
+                                <td>전액 상환</td>
+                            </tr>
+                            <tr>
+                                <td>사업자대출 상환</td>
+                                <td class="negative">-2,250만원</td>
+                                <td>1,500만원 + 750만원</td>
+                            </tr>
+                            <tr>
+                                <td>중개수수료 + 세금</td>
+                                <td class="negative">-674만원</td>
+                                <td>0.5% + 양도세 24만원</td>
+                            </tr>
+                            <tr class="highlight-row">
+                                <td><strong>순 확보 자금</strong></td>
+                                <td class="positive"><strong>9억 56만원</strong></td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <td>안경원 자기자본 투입</td>
+                                <td class="negative">-8,000만원</td>
+                                <td>물건+기계+기타</td>
+                            </tr>
+                            <tr class="highlight-row">
+                                <td><strong>건물 매입 가용자금</strong></td>
+                                <td class="positive"><strong>8억 2,056만원</strong></td>
+                                <td></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="card">
+                    <h3>🏢 18억원 건물 투자 구조</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>층</th>
+                                <th>용도</th>
+                                <th>월세</th>
+                                <th>보증금</th>
+                                <th>특이사항</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>1층</td>
+                                <td>안경원 직접 운영</td>
+                                <td>300만원</td>
+                                <td>3,000만원</td>
+                                <td>법인에 납부</td>
+                            </tr>
+                            <tr>
+                                <td>2층</td>
+                                <td>사무실 임대</td>
+                                <td>250만원</td>
+                                <td>3,000만원</td>
+                                <td>일반 임대</td>
+                            </tr>
+                            <tr>
+                                <td>3층</td>
+                                <td>사무실 임대</td>
+                                <td>230만원</td>
+                                <td>3,000만원</td>
+                                <td>일반 임대</td>
+                            </tr>
+                            <tr>
+                                <td>4층</td>
+                                <td>소규모 임대</td>
+                                <td>200만원</td>
+                                <td>2,000만원</td>
+                                <td>일반 임대</td>
+                            </tr>
+                            <tr>
+                                <td>5층</td>
+                                <td>개인 거주</td>
+                                <td>100만원</td>
+                                <td>-</td>
+                                <td>법인에 납부</td>
+                            </tr>
+                            <tr class="highlight-row">
+                                <td><strong>합계</strong></td>
+                                <td></td>
+                                <td><strong>1,080만원</strong></td>
+                                <td><strong>1억 1,000만원</strong></td>
+                                <td>부족자금 해결</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="card">
+                    <h3>💰 개인 월간 현금흐름</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>구분</th>
+                                <th>항목</th>
+                                <th>금액</th>
+                                <th>비고</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td rowspan="3"><strong>수입</strong></td>
+                                <td>안경원 순이익</td>
+                                <td class="positive">1,000만원</td>
+                                <td>월 매출 3,000만원</td>
+                            </tr>
+                            <tr>
+                                <td>법인 배당 (세후)</td>
+                                <td class="positive">353만원</td>
+                                <td>건물 임대수익</td>
+                            </tr>
+                            <tr class="highlight-row">
+                                <td><strong>총 수입</strong></td>
+                                <td class="positive"><strong>1,353만원</strong></td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <td rowspan="4"><strong>지출</strong></td>
+                                <td>안경원 월세</td>
+                                <td>300만원</td>
+                                <td>법인에 납부</td>
+                            </tr>
+                            <tr>
+                                <td>거주 월세</td>
+                                <td>100만원</td>
+                                <td>법인에 납부</td>
+                            </tr>
+                            <tr>
+                                <td>정부지원대출 상환</td>
+                                <td>20만원</td>
+                                <td>인테리어 대출</td>
+                            </tr>
+                            <tr class="highlight-row">
+                                <td><strong>총 지출</strong></td>
+                                <td><strong>420만원</strong></td>
+                                <td></td>
+                            </tr>
+                            <tr class="highlight-row">
+                                <td colspan="2"><strong>월 순현금흐름</strong></td>
+                                <td class="positive"><strong>933만원</strong></td>
+                                <td><strong>연 1억 1,196만원</strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="alert alert-success">
+                    <h4>💎 월 대출 부담 완전 해소 효과</h4>
+                    <p><strong>현재: 289.5만원 → 변경 후: 20만원 = 월 269.5만원 개선</strong></p>
+                    <p>이는 연간 3,234만원, 10년간 약 3억 2,340만원의 현금흐름 개선을 의미합니다.</p>
+                    <p><strong>특히 주택담보대출 원금 상환 85.1만원이 완전히 해소되어 가계 현금흐름이 극적으로 개선됩니다.</strong></p>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>5️⃣ 10년 투자 성과 전망</h2>
+                
+                <div class="card">
+                    <h3>📈 연도별 예상 성과</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>연차</th>
+                                <th>월 현금흐름</th>
+                                <th>연 현금흐름</th>
+                                <th>누적 현금</th>
+                                <th>건물 가치</th>
+                                <th>총 자산</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>1년차</td>
+                                <td>933만원</td>
+                                <td>1억 1,196만원</td>
+                                <td>1억 1,196만원</td>
+                                <td>18억원</td>
+                                <td>19억 1,196만원</td>
+                            </tr>
+                            <tr>
+                                <td>3년차</td>
+                                <td>1,050만원</td>
+                                <td>1억 2,600만원</td>
+                                <td>3억 7,796만원</td>
+                                <td>19억 6,000만원</td>
+                                <td>23억 3,796만원</td>
+                            </tr>
+                            <tr>
+                                <td>5년차</td>
+                                <td>1,180만원</td>
+                                <td>1억 4,160만원</td>
+                                <td>7억 796만원</td>
+                                <td>21억 6,000만원</td>
+                                <td>28억 6,796만원</td>
+                            </tr>
+                            <tr>
+                                <td>7년차</td>
+                                <td>1,320만원</td>
+                                <td>1억 5,840만원</td>
+                                <td>11억 876만원</td>
+                                <td>23억 4,000만원</td>
+                                <td>34억 4,876만원</td>
+                            </tr>
+                            <tr class="highlight-row">
+                                <td><strong>10년차</strong></td>
+                                <td class="positive"><strong>1,500만원</strong></td>
+                                <td class="positive"><strong>1억 8,000만원</strong></td>
+                                <td class="positive"><strong>18억원</strong></td>
+                                <td class="positive"><strong>27억원</strong></td>
+                                <td class="positive"><strong>45억원</strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>6️⃣ 단계별 실행 계획</h2>
+                
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <h4>Phase 1: 긴급 준비 단계 (즉시 시작)</h4>
+                        <ul>
+                            <li>✅ 아파트 매물 등록 (13억 이상 목표)</li>
+                            <li>✅ 법인 설립 (부동산 임대업)</li>
+                            <li>✅ 세무사 상담 (양도세 확인)</li>
+                            <li>✅ 18억원대 올근생 건물 탐색</li>
+                            <li>✅ 은행 대출 사전 승인</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="timeline-item">
+                        <h4>Phase 2: 계약 단계 (1개월)</h4>
+                        <ul>
+                            <li>✅ 건물 매매계약 (법인 명의)</li>
+                            <li>✅ 아파트 매매계약</li>
+                            <li>✅ 건물 담보대출 실행</li>
+                            <li>✅ 정부지원대출 신청 (인테리어용)</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="timeline-item">
+                        <h4>Phase 3: 실행 단계 (2-3개월)</h4>
+                        <ul>
+                            <li>✅ 아파트 잔금 및 모든 대출 상환</li>
+                            <li>✅ 건물 잔금 및 등기</li>
+                            <li>✅ 안경원 인테리어 (5천만원)</li>
+                            <li>✅ 안경원 물건/기계 구입</li>
+                            <li>✅ 안경원 개업</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>7️⃣ 필수 확인 사항</h2>
+                
+                <div class="alert alert-danger">
+                    <h4>🚨 반드시 확인해야 할 사항</h4>
+                    <ul>
+                        <li><strong>등기부등본 용도:</strong> '근린생활시설'만 있는지 확인 (주택 포함 시 취득세 8%)</li>
+                        <li><strong>양도세 비과세 요건:</strong> 보유/거주 기간 정확히 확인</li>
+                        <li><strong>건물 상태:</strong> 준공 후 20년 이내 권장</li>
+                        <li><strong>임대 현황:</strong> 현재 임차인 계약 조건 검토</li>
+                        <li><strong>대출 조건:</strong> LTV, 금리, 상환 방식 사전 확인</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="final-recommendation">
+            <h2>🎯 최종 결론: 생존을 위한 선택</h2>
+            <p style="font-size: 1.3em; line-height: 1.8; margin-bottom: 30px;">
+                <strong>주택담보대출 원금 상환 85.1만원이라는 충격적 현실 앞에서, 아파트 매도는 선택이 아닌 필수입니다.</strong>
+            </p>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 30px 0;">
+                <div style="background: rgba(255,255,255,0.2); padding: 25px; border-radius: 15px;">
+                    <h3 style="color: #ff6b6b; margin-bottom: 15px;">현재 위기 상황</h3>
+                    <ul style="text-align: left; line-height: 2;">
+                        <li>월 289.5만원 대출 상환</li>
+                        <li>연 3,474만원 현금 유출</li>
+                        <li>10년간 3억 4,740만원 손실</li>
+                        <li><strong>가계 현금흐름 파탄 직전</strong></li>
+                    </ul>
+                </div>
+                
+                <div style="background: rgba(255,255,255,0.2); padding: 25px; border-radius: 15px;">
+                    <h3 style="color: #4ecdc4; margin-bottom: 15px;">시나리오 1 선택 시</h3>
+                    <ul style="text-align: left; line-height: 2;">
+                        <li>월 269.5만원 현금흐름 개선</li>
+                        <li>18억원 건물에서 안정적 수익</li>
+                        <li>10년 후 총 자산 45억원</li>
+                        <li><strong>완전한 재정 자유 달성</strong></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <p style="font-size: 1.4em; font-weight: bold; margin-top: 30px;">
+                1.7% 저금리를 포기하는 아쉬움보다,<br>
+                매월 289.5만원의 현금 출혈을 막고<br>
+                <span style="color: #f1c40f;">18억원 올근생 건물 + 안경원으로 새로운 미래를 여는 것</span>이<br>
+                유일한 생존 전략입니다.
+            </p>
+            
+            <p style="font-size: 1.2em; margin-top: 20px; opacity: 0.9;">
+                이는 단순한 '투자'가 아닌,<br>
+                <strong>파산 위기에서 벗어나 45억원 자산가로 거듭나는 인생 역전의 기회입니다.</strong>
+            </p>
+        </div>
+
+        <div class="footer">
+            <p>본 리포트는 2024년 3월 실제 대출 상환 데이터를 바탕으로 작성되었으며, 실제 투자 전 반드시 세무사 및 금융 전문가와 상담하시기 바랍니다.</p>
+            <p style="margin-top: 10px;">© 2024 부동산 투자 전략 분석 리포트 | 최종 수정: 2024년 3월 (실제 데이터 반영)</p>
+        </div>
+    </div>
+</body>
+</html>

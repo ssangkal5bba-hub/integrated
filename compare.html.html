@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BuildLens — 매물 점수 비교</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Noto+Serif+KR:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #F5F2EC; --paper: #FDFCF8; --ink: #1C1712; --ink2: #3D3528;
+  --muted: #8A7E6C; --border: #E2D9C8; --gold: #C8890A; --gold-bg: #FFF8E6;
+  --gold-light: #FFE9A0; --green: #1A7A4A; --green-bg: #EDFAF3;
+  --red: #C0392B; --red-bg: #FDF0EE; --blue: #1A5FA8; --blue-bg: #EEF4FC;
+  --shadow: 0 2px 16px rgba(60,40,10,0.08);
+}
+body { background: var(--bg); font-family: 'Noto Sans KR', sans-serif; color: var(--ink); min-height: 100vh; }
+
+/* 로그인 화면 */
+#login-screen {
+  position: fixed; inset: 0; background: var(--ink);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  z-index: 9999; gap: 24px;
+}
+.login-box {
+  background: var(--paper); border-radius: 20px; padding: 48px 40px;
+  text-align: center; max-width: 380px; width: 90%;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.3);
+}
+.login-logo { font-size: 48px; margin-bottom: 8px; }
+.login-box h1 { font-family: 'Noto Serif KR', serif; font-size: 24px; font-weight: 700; margin-bottom: 6px; }
+.login-box p { font-size: 13px; color: var(--muted); margin-bottom: 28px; line-height: 1.6; }
+.google-btn {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  background: #fff; border: 2px solid var(--border); border-radius: 12px;
+  padding: 14px 24px; font-size: 14px; font-weight: 700; cursor: pointer;
+  font-family: 'Noto Sans KR', sans-serif; width: 100%; transition: all 0.2s;
+  color: var(--ink);
+}
+.google-btn:hover { border-color: var(--gold); box-shadow: 0 4px 16px rgba(200,137,10,0.2); transform: translateY(-1px); }
+.google-btn img { width: 20px; height: 20px; }
+
+/* 헤더 */
+header { background: var(--ink); padding: 14px 24px; display: flex; align-items: center; gap: 12px; }
+.logo { width: 34px; height: 34px; background: var(--gold); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+.logo-t h1 { font-family: 'Noto Serif KR', serif; font-size: 17px; font-weight: 700; color: #fff; }
+.logo-t p { font-size: 10px; color: #888; }
+.hd-tabs { margin-left: auto; display: flex; gap: 4px; align-items: center; }
+.tab-btn { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); color: #ccc; border-radius: 8px; padding: 6px 14px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: 'Noto Sans KR', sans-serif; transition: all 0.15s; }
+.tab-btn.active { background: var(--gold); color: #fff; border-color: var(--gold); }
+.tab-btn:hover:not(.active) { background: rgba(255,255,255,0.14); color: #fff; }
+.user-info { display: flex; align-items: center; gap: 8px; margin-left: 12px; }
+.user-avatar { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--gold); }
+.user-name { font-size: 12px; color: #ccc; max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.logout-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15); color: #aaa; border-radius: 6px; padding: 4px 10px; font-size: 11px; cursor: pointer; font-family: 'Noto Sans KR', sans-serif; transition: all 0.15s; }
+.logout-btn:hover { background: var(--red-bg); color: var(--red); border-color: var(--red); }
+
+/* 저장 상태 표시 */
+.save-status {
+  position: fixed; top: 64px; right: 16px; background: var(--paper);
+  border: 1.5px solid var(--border); border-radius: 8px; padding: 6px 12px;
+  font-size: 11px; color: var(--muted); z-index: 100;
+  display: flex; align-items: center; gap: 6px; box-shadow: var(--shadow);
+  transition: all 0.3s; opacity: 0;
+}
+.save-status.show { opacity: 1; }
+.save-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+.save-dot.saving { background: var(--gold); animation: pulse 1s infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+/* 패널 */
+.panel { display: none; max-width: 1100px; margin: 0 auto; padding: 28px 24px 80px; }
+.panel.active { display: block; }
+
+/* 섹션 타이틀 */
+.sec-title { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+.sec-title h2 { font-family: 'Noto Serif KR', serif; font-size: 17px; font-weight: 700; }
+.sec-title p { font-size: 12px; color: var(--muted); }
+
+/* 기준 설정 */
+.criteria-card { background: var(--paper); border: 1.5px solid var(--border); border-radius: 14px; padding: 20px 24px; margin-bottom: 16px; box-shadow: var(--shadow); }
+.criteria-hd { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+.criteria-hd .badge { font-size: 10px; font-weight: 700; padding: 3px 9px; border-radius: 99px; }
+.badge-must { background: rgba(192,57,43,0.12); color: var(--red); }
+.badge-opt { background: rgba(200,137,10,0.12); color: var(--gold); }
+.criteria-hd h3 { font-size: 14px; font-weight: 700; }
+.criteria-hd small { font-size: 11px; color: var(--muted); }
+.must-list, .opt-list { display: flex; flex-direction: column; gap: 8px; }
+.must-item, .opt-item { display: flex; align-items: center; gap: 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; }
+.must-item input[type=text], .opt-item input[type=text] { flex: 1; border: none; background: transparent; font-family: 'Noto Sans KR', sans-serif; font-size: 13px; color: var(--ink); outline: none; }
+.must-item input[type=text]::placeholder, .opt-item input[type=text]::placeholder { color: #bbb; }
+.del-btn { width: 24px; height: 24px; border-radius: 50%; background: rgba(192,57,43,0.1); border: none; color: var(--red); cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.del-btn:hover { background: rgba(192,57,43,0.2); }
+.score-input { width: 56px; border: 1.5px solid var(--border); border-radius: 7px; padding: 5px 8px; font-size: 13px; font-weight: 700; color: var(--gold); text-align: center; font-family: 'Noto Sans KR', sans-serif; outline: none; }
+.score-input:focus { border-color: var(--gold); }
+.score-label { font-size: 11px; color: var(--muted); white-space: nowrap; }
+.total-score-bar { background: var(--gold-bg); border: 1.5px solid rgba(200,137,10,0.2); border-radius: 10px; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; margin-top: 10px; }
+.total-score-bar span { font-size: 12px; color: var(--muted); }
+.total-score-bar strong { font-size: 18px; font-weight: 900; color: var(--gold); }
+.add-btn { display: flex; align-items: center; gap: 6px; background: none; border: 1.5px dashed var(--border); border-radius: 10px; padding: 9px 16px; font-size: 12px; color: var(--muted); cursor: pointer; font-family: 'Noto Sans KR', sans-serif; width: 100%; margin-top: 8px; transition: all 0.15s; }
+.add-btn:hover { border-color: var(--gold); color: var(--gold); background: var(--gold-bg); }
+
+/* 매물 입력 */
+.property-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 20px; align-items: center; }
+.prop-tab { background: var(--paper); border: 1.5px solid var(--border); border-radius: 99px; padding: 6px 16px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: 'Noto Sans KR', sans-serif; color: var(--muted); transition: all 0.15s; }
+.prop-tab.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+.prop-tab:hover:not(.active) { border-color: var(--gold); color: var(--gold); }
+.add-prop-btn { background: var(--gold); color: #fff; border: none; border-radius: 99px; padding: 6px 16px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: 'Noto Sans KR', sans-serif; }
+.prop-form { background: var(--paper); border: 1.5px solid var(--border); border-radius: 14px; padding: 24px; box-shadow: var(--shadow); }
+.form-section { margin-bottom: 24px; }
+.form-section-hd { background: var(--ink2); color: rgba(255,255,255,0.7); font-size: 11px; font-weight: 700; letter-spacing: 1px; padding: 6px 12px; border-radius: 6px; margin-bottom: 12px; }
+.form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+.form-field { display: flex; flex-direction: column; gap: 4px; }
+.form-field label { font-size: 11px; font-weight: 700; color: var(--muted); }
+.form-field input { border: 1.5px solid var(--border); border-radius: 8px; padding: 9px 12px; font-size: 13px; font-family: 'Noto Sans KR', sans-serif; color: var(--ink); outline: none; background: #fff; transition: border-color 0.2s; }
+.form-field input:focus { border-color: var(--gold); }
+.form-field.full { grid-column: 1 / -1; }
+.must-check-list { display: flex; flex-direction: column; gap: 6px; }
+.must-check { display: flex; align-items: center; gap: 10px; }
+.must-check span { flex: 1; font-size: 13px; color: var(--ink2); }
+.ox-group { display: flex; gap: 6px; }
+.ox-btn { width: 36px; height: 28px; border-radius: 6px; border: 1.5px solid var(--border); background: #fff; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.15s; }
+.ox-btn.o.active { background: var(--green-bg); border-color: var(--green); color: var(--green); }
+.ox-btn.x.active { background: var(--red-bg); border-color: var(--red); color: var(--red); }
+.ox-btn:hover { border-color: var(--gold); }
+.opt-score-list { display: flex; flex-direction: column; gap: 8px; }
+.opt-score-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--bg); border-radius: 10px; border: 1px solid var(--border); }
+.opt-score-item span { flex: 1; font-size: 13px; color: var(--ink2); }
+.opt-score-item .max { font-size: 11px; color: var(--muted); }
+.score-slider-wrap { display: flex; align-items: center; gap: 8px; }
+.score-slider { width: 120px; height: 4px; accent-color: var(--gold); }
+.score-display { width: 36px; text-align: center; font-size: 13px; font-weight: 700; color: var(--gold); }
+.save-btn { background: linear-gradient(135deg, var(--gold), #E8A020); color: #fff; border: none; border-radius: 10px; padding: 12px 28px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: 'Noto Sans KR', sans-serif; box-shadow: 0 4px 14px rgba(200,137,10,0.3); transition: all 0.15s; }
+.save-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(200,137,10,0.4); }
+
+/* 비교표 */
+.compare-wrap { overflow-x: auto; }
+.compare-table { width: 100%; border-collapse: collapse; min-width: 700px; }
+.compare-table th { background: var(--ink); color: rgba(255,255,255,0.8); font-size: 11px; font-weight: 700; padding: 10px 14px; text-align: left; border-right: 1px solid rgba(255,255,255,0.08); white-space: nowrap; }
+.compare-table th:first-child { position: sticky; left: 0; z-index: 3; background: var(--ink); box-shadow: 2px 0 6px rgba(0,0,0,0.18); }
+.compare-table td:first-child { position: sticky; left: 0; z-index: 1; background: var(--paper); box-shadow: 2px 0 6px rgba(0,0,0,0.06); }
+.compare-table tr:hover td:first-child { background: #f5f0e8; }
+.compare-table th.prop-col { background: var(--ink2); color: #fff; text-align: center; font-size: 12px; }
+.compare-table td { font-size: 13px; padding: 9px 14px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); vertical-align: middle; background: var(--paper); }
+.compare-table tr:hover td { background: rgba(200,137,10,0.04); }
+.compare-table .row-hd td { background: var(--bg) !important; font-weight: 700; font-size: 11px; color: var(--muted); letter-spacing: 0.5px; }
+.compare-table td.center { text-align: center; }
+.compare-table td.num { font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
+.o-badge { display: inline-block; width: 22px; height: 22px; border-radius: 50%; background: var(--green-bg); color: var(--green); font-size: 12px; font-weight: 700; text-align: center; line-height: 22px; }
+.x-badge { display: inline-block; width: 22px; height: 22px; border-radius: 50%; background: var(--red-bg); color: var(--red); font-size: 12px; font-weight: 700; text-align: center; line-height: 22px; }
+.score-bar-wrap { display: flex; align-items: center; gap: 8px; }
+.score-bar-bg { flex: 1; height: 6px; background: var(--border); border-radius: 99px; overflow: hidden; min-width: 60px; }
+.score-bar-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--gold), #E8A020); transition: width 0.6s ease; }
+.score-num { font-size: 13px; font-weight: 700; color: var(--gold); min-width: 28px; }
+.total-row td { background: var(--gold-bg) !important; font-weight: 700 !important; font-size: 14px !important; }
+.rank-badge { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; font-size: 11px; font-weight: 700; }
+.rank-1 { background: #FFD700; color: #7A5C00; }
+.rank-2 { background: #C0C0C0; color: #4A4A4A; }
+.rank-3 { background: #CD7F32; color: #5A3000; }
+.rank-n { background: var(--border); color: var(--muted); }
+.empty-state { text-align: center; padding: 60px 24px; color: var(--muted); }
+.empty-state .ei { font-size: 40px; margin-bottom: 12px; opacity: 0.5; }
+.empty-state p { font-size: 13px; }
+
+/* 토스트 */
+.toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--ink); color: #fff; border-radius: 10px; padding: 12px 24px; font-size: 13px; font-weight: 600; opacity: 0; pointer-events: none; transition: all 0.3s ease; z-index: 9999; white-space: nowrap; box-shadow: 0 4px 20px rgba(0,0,0,0.25); }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* 매입가능가 */
+.scenario-btn { background: rgba(255,255,255,0.5); border: 1.5px solid var(--border); border-radius: 99px; padding: 7px 20px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: 'Noto Sans KR', sans-serif; color: var(--muted); transition: all 0.15s; }
+.scenario-btn.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+.scenario-btn:hover:not(.active) { border-color: var(--gold); color: var(--gold); }
+.budget-card { background: var(--paper); border: 1.5px solid var(--border); border-radius: 14px; padding: 0; box-shadow: var(--shadow); overflow: hidden; }
+.budget-hd { background: var(--ink2); color: rgba(255,255,255,0.75); font-size: 12px; font-weight: 700; letter-spacing: 0.8px; padding: 10px 16px; }
+.budget-rows { padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; }
+.brow { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 32px; }
+.brow-label { font-size: 13px; color: var(--ink2); flex: 1; }
+.brow-hint { font-size: 10px; color: var(--muted); display: block; margin-top: 1px; }
+.brow-input-wrap { display: flex; align-items: center; gap: 6px; }
+.b-input { border: 1.5px solid var(--border); border-radius: 7px; padding: 6px 10px; font-size: 13px; font-family: 'Noto Sans KR', sans-serif; color: var(--ink); outline: none; text-align: right; width: 130px; transition: border-color 0.2s; background: #fff; }
+.b-input:focus { border-color: var(--gold); }
+.b-unit { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.brow-total { background: var(--gold-bg); border-radius: 8px; padding: 8px 10px; }
+.brow-result { font-size: 15px; font-weight: 700; color: var(--gold); white-space: nowrap; }
+
+@media (max-width: 600px) {
+  .panel { padding: 20px 16px 60px; }
+  header { padding: 12px 16px; flex-wrap: wrap; gap: 8px; }
+  .hd-tabs { gap: 3px; }
+  .tab-btn { padding: 5px 8px; font-size: 10px; }
+  .form-grid { grid-template-columns: 1fr 1fr; }
+  .user-name { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- 로그인 화면 -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">🏢</div>
+    <h1>BuildLens</h1>
+    <p>매물 점수 비교 계산기<br>Google 계정으로 로그인하면<br>데이터가 자동으로 저장됩니다</p>
+    <button class="google-btn" onclick="signInWithGoogle()">
+      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+      Google로 로그인
+    </button>
+  </div>
+</div>
+
+<!-- 저장 상태 -->
+<div class="save-status" id="saveStatus">
+  <div class="save-dot" id="saveDot"></div>
+  <span id="saveText">저장됨</span>
+</div>
+
+<!-- 토스트 -->
+<div class="toast" id="toast"></div>
+
+<header>
+  <div class="logo">🏢</div>
+  <div class="logo-t">
+    <h1>BuildLens</h1>
+    <p>매물 점수 비교 계산기</p>
+  </div>
+  <div class="hd-tabs">
+    <button class="tab-btn active" onclick="showTab('budget', this)">💰 매입 가능가</button>
+    <button class="tab-btn" onclick="showTab('criteria', this)">⚙️ 기준 설정</button>
+    <button class="tab-btn" onclick="showTab('input', this)">📝 매물 입력</button>
+    <button class="tab-btn" onclick="showTab('compare', this)">📊 비교 분석</button>
+  </div>
+  <div class="user-info" id="userInfo" style="display:none">
+    <img class="user-avatar" id="userAvatar" src="" alt="">
+    <span class="user-name" id="userName"></span>
+    <button class="logout-btn" onclick="signOut()">로그아웃</button>
+  </div>
+</header>
+
+<!-- 탭0: 매입 가능가 -->
+<div class="panel active" id="tab-budget">
+  <div class="sec-title">
+    <h2>💰 매입 가능 건물 예상 매매가</h2>
+    <p>자산·대출·저축 입력 후 매입 가능한 건물가를 자동 계산합니다</p>
+  </div>
+  <div style="display:flex;gap:8px;margin-bottom:20px">
+    <button class="scenario-btn active" id="btn-sell" onclick="setScenario('sell')">🏠 집 팔면</button>
+    <button class="scenario-btn" id="btn-rent" onclick="setScenario('rent')">🔑 전세 주면</button>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div class="budget-card">
+      <div class="budget-hd">1. 기존 자산 정리</div>
+      <div class="budget-rows">
+        <div class="brow"><div class="brow-label">현금 <span class="brow-hint">당장 활용 가능한 순수 현금</span></div><div class="brow-input-wrap"><input type="number" id="b-cash" class="b-input" placeholder="0" oninput="calcBudget()"><span class="b-unit">만원</span></div></div>
+        <div class="brow" id="row-sell-estate"><div class="brow-label">부동산 매각 <span class="brow-hint">매각 시 자금 예상액</span></div><div class="brow-input-wrap"><input type="number" id="b-estate-sell" class="b-input" placeholder="0" oninput="calcBudget()"><span class="b-unit">만원</span></div></div>
+        <div class="brow" id="row-rent-estate" style="display:none"><div class="brow-label">전세 확보액 <span class="brow-hint">자가 → 전세 전환</span></div><div class="brow-input-wrap"><input type="number" id="b-estate-rent" class="b-input" placeholder="0" oninput="calcBudget()"><span class="b-unit">만원</span></div></div>
+        <div class="brow"><div class="brow-label">금융자산 <span class="brow-hint">주식·채권·금 등</span></div><div class="brow-input-wrap"><input type="number" id="b-finance" class="b-input" placeholder="0" oninput="calcBudget()"><span class="b-unit">만원</span></div></div>
+        <div class="brow"><div class="brow-label">가족자산 <span class="brow-hint">배우자·부모님 조달 가능</span></div><div class="brow-input-wrap"><input type="number" id="b-family" class="b-input" placeholder="0" oninput="calcBudget()"><span class="b-unit">만원</span></div></div>
+        <div class="brow"><div class="brow-label">매장 보증금 <span class="brow-hint">현 임차 매장</span></div><div class="brow-input-wrap"><input type="number" id="b-deposit" class="b-input" placeholder="0" oninput="calcBudget()"><span class="b-unit">만원</span></div></div>
+        <div class="brow"><div class="brow-label">권리금 <span class="brow-hint">보수적 산정</span></div><div class="brow-input-wrap"><input type="number" id="b-premium" class="b-input" placeholder="0" oninput="calcBudget()"><span class="b-unit">만원</span></div></div>
+        <div class="brow"><div class="brow-label">기타 <span class="brow-hint">기타 현금성 자산</span></div><div class="brow-input-wrap"><input type="number" id="b-etc" class="b-input" placeholder="0" oninput="calcBudget()"><span class="b-unit">만원</span></div></div>
+        <div class="brow brow-total"><div class="brow-label">자산 합계</div><div class="brow-result" id="r-asset">0 만원</div></div>
+      </div>
+    </div>
+    <div class="budget-card">
+      <div class="budget-hd">2. 대출 가능 금액</div>
+      <div class="budget-rows">
+        <div class="brow"><div class="brow-label">신용대출 <span class="brow-hint">무담보 대출</span></div><div style="display:flex;gap:4px;align-items:center"><input type="number" id="l-credit-amt" class="b-input" style="width:100px" placeholder="금액" oninput="calcBudget()"><input type="number" id="l-credit-rate" class="b-input" style="width:60px" placeholder="%" oninput="calcBudget()"><span class="b-unit">%</span></div></div>
+        <div class="brow"><div class="brow-label">담보대출</div><div style="display:flex;gap:4px;align-items:center"><input type="number" id="l-collateral-amt" class="b-input" style="width:100px" placeholder="금액" oninput="calcBudget()"><input type="number" id="l-collateral-rate" class="b-input" style="width:60px" placeholder="%" oninput="calcBudget()"><span class="b-unit">%</span></div></div>
+        <div class="brow"><div class="brow-label">정책자금 <span class="brow-hint">저금리</span></div><div style="display:flex;gap:4px;align-items:center"><input type="number" id="l-policy-amt" class="b-input" style="width:100px" placeholder="금액" oninput="calcBudget()"><input type="number" id="l-policy-rate" class="b-input" style="width:60px" placeholder="%" oninput="calcBudget()"><span class="b-unit">%</span></div></div>
+        <div class="brow"><div class="brow-label">노란우산공제</div><div style="display:flex;gap:4px;align-items:center"><input type="number" id="l-naeil-amt" class="b-input" style="width:100px" placeholder="금액" oninput="calcBudget()"><input type="number" id="l-naeil-rate" class="b-input" style="width:60px" placeholder="%" oninput="calcBudget()"><span class="b-unit">%</span></div></div>
+        <div class="brow"><div class="brow-label">보험약관대출</div><div style="display:flex;gap:4px;align-items:center"><input type="number" id="l-insure-amt" class="b-input" style="width:100px" placeholder="금액" oninput="calcBudget()"><input type="number" id="l-insure-rate" class="b-input" style="width:60px" placeholder="%" oninput="calcBudget()"><span class="b-unit">%</span></div></div>
+        <div class="brow"><div class="brow-label">기타대출</div><div style="display:flex;gap:4px;align-items:center"><input type="number" id="l-etc-amt" class="b-input" style="width:100px" placeholder="금액" oninput="calcBudget()"><input type="number" id="l-etc-rate" class="b-input" style="width:60px" placeholder="%" oninput="calcBudget()"><span class="b-unit">%</span></div></div>
+        <div class="brow brow-total"><div class="brow-label">대출 합계</div><div class="brow-result" id="r-loan">0 만원</div></div>
+        <div class="brow" style="background:var(--red-bg);border-radius:8px;padding:8px 10px;margin-top:4px"><div class="brow-label" style="color:var(--red)">월 이자 합계</div><div class="brow-result" style="color:var(--red)" id="r-monthly-interest">0 만원/월</div></div>
+      </div>
+    </div>
+    <div class="budget-card">
+      <div class="budget-hd">3. 현금 흐름 (저축 가능 금액)</div>
+      <div class="budget-rows">
+        <div class="brow"><div class="brow-label">월 최대 저축 가능 금액</div><div class="brow-input-wrap"><input type="number" id="b-monthly-save" class="b-input" placeholder="0" oninput="calcBudget()"><span class="b-unit">만원</span></div></div>
+        <div class="brow"><div class="brow-label">매물탐색~잔금 기간</div><div class="brow-input-wrap"><input type="number" id="b-months" class="b-input" value="9" oninput="calcBudget()"><span class="b-unit">개월</span></div></div>
+        <div class="brow brow-total"><div class="brow-label">저축 합계</div><div class="brow-result" id="r-saving">0 만원</div></div>
+      </div>
+    </div>
+    <div class="budget-card" style="background:var(--gold-bg);border-color:rgba(200,137,10,0.25)">
+      <div class="budget-hd" style="background:var(--gold);color:#fff">4. 시드머니 합계</div>
+      <div class="budget-rows">
+        <div class="brow brow-total" style="background:rgba(200,137,10,0.08)"><div class="brow-label" style="font-size:15px">총 시드머니</div><div class="brow-result" style="font-size:22px;color:var(--gold)" id="r-seed">0 만원</div></div>
+        <div class="brow" style="background:rgba(192,57,43,0.06);border-radius:8px;padding:8px 10px"><div class="brow-label" style="color:var(--red)">월 지출 합계 (이자)</div><div class="brow-result" style="color:var(--red)" id="r-monthly-total">0 만원/월</div></div>
+      </div>
+    </div>
+  </div>
+  <div style="margin-top:20px;background:var(--ink);border-radius:16px;padding:24px 28px">
+    <div style="font-family:'Noto Serif KR',serif;font-size:16px;font-weight:700;color:#fff;margin-bottom:20px">🏢 매입 가능 건물 예상 매매가</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div style="background:rgba(255,255,255,0.07);border-radius:12px;padding:18px 20px">
+        <div style="font-size:11px;color:#999;margin-bottom:6px;font-weight:600">최저 (대출 70%)</div>
+        <div style="font-size:32px;font-weight:900;color:var(--gold)" id="r-price-min">-</div>
+        <div style="font-size:12px;color:#888;margin-top:6px">시드머니 ÷ (1 − 0.70 + 0.06) = 시드머니 ÷ <strong style="color:#bbb">0.36</strong></div>
+      </div>
+      <div style="background:rgba(200,137,10,0.15);border-radius:12px;padding:18px 20px;border:1px solid rgba(200,137,10,0.3)">
+        <div style="font-size:11px;color:var(--gold-light);margin-bottom:6px;font-weight:600">최대 (대출 80%)</div>
+        <div style="font-size:32px;font-weight:900;color:#FFD700" id="r-price-max">-</div>
+        <div style="font-size:12px;color:#aaa;margin-top:6px">시드머니 ÷ (1 − 0.80 + 0.06) = 시드머니 ÷ <strong style="color:#ddd">0.26</strong></div>
+      </div>
+    </div>
+    <div style="margin-top:14px;padding:12px 16px;background:rgba(255,255,255,0.05);border-radius:10px;font-size:12px;color:#999;line-height:1.8">
+      💡 <strong style="color:#ddd">계산 공식:</strong> 예상 매매가 = 시드머니 ÷ [ (1 − 대출비율) + 부대비용 6% ]<br>
+      부대비용 6%: 취득세·법무비·중개보수·인테리어 초기비용 포함<br>
+      시드머니 = 자산합계 + 대출합계 + 저축합계
+    </div>
+  </div>
+</div>
+
+<!-- 탭1: 기준 설정 -->
+<div class="panel" id="tab-criteria">
+  <div class="sec-title"><h2>📋 물건 기준 설정</h2><p>필수사항과 선택사항 배점을 직접 설정하세요</p></div>
+  <div class="criteria-card">
+    <div class="criteria-hd"><span class="badge badge-must">필수</span><h3>필수 사항</h3><small>하나라도 X면 탈락 처리됩니다</small></div>
+    <div class="must-list" id="mustList"></div>
+    <button class="add-btn" onclick="addMust()">+ 필수 항목 추가</button>
+  </div>
+  <div class="criteria-card">
+    <div class="criteria-hd"><span class="badge badge-opt">선택</span><h3>선택 사항 (배점)</h3><small>총 100점 기준 권장</small></div>
+    <div class="opt-list" id="optList"></div>
+    <button class="add-btn" onclick="addOpt()">+ 선택 항목 추가</button>
+    <div class="total-score-bar" style="margin-top:14px"><span>선택사항 총 배점</span><strong id="totalPoints">0점</strong></div>
+  </div>
+  <button class="save-btn" onclick="saveCriteria()">✅ 기준 저장</button>
+</div>
+
+<!-- 탭2: 매물 입력 -->
+<div class="panel" id="tab-input">
+  <div class="sec-title"><h2>🏗️ 매물 입력</h2><p>매물별로 정보와 점수를 입력하세요</p></div>
+  <div class="property-tabs" id="propTabs"><button class="add-prop-btn" onclick="addProperty()">+ 매물 추가</button></div>
+  <div id="propFormWrap">
+    <div class="empty-state"><div class="ei">🏙️</div><p>위 "+ 매물 추가" 버튼을 눌러 매물을 등록해주세요</p></div>
+  </div>
+</div>
+
+<!-- 탭3: 비교 분석 -->
+<div class="panel" id="tab-compare">
+  <div class="sec-title"><h2>📊 매물 비교 분석</h2><p>입력된 매물을 점수 기준으로 비교합니다</p></div>
+  <div id="compareWrap">
+    <div class="empty-state"><div class="ei">📋</div><p>매물을 입력하고 저장하면 여기서 비교됩니다</p></div>
+  </div>
+</div>
+
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut as fbSignOut }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getFirestore, doc, setDoc, getDoc, onSnapshot }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+// ── Firebase 초기화 ──
+const firebaseConfig = {
+  apiKey: "AIzaSyBi3rvgz50veHNdMt8Ma4QULzmkRx6EMa8",
+  authDomain: "building-zoo.firebaseapp.com",
+  projectId: "building-zoo",
+  storageBucket: "building-zoo.firebasestorage.app",
+  messagingSenderId: "1047799924801",
+  appId: "1:1047799924801:web:bb9698d6abd4ab8eec9ec0",
+  measurementId: "G-Y91ZT6JEFB"
+};
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+// ── 전역 노출 ──
+let currentUser = null;
+let saveTimer   = null;
+let unsubscribe = null;
+
+window.signInWithGoogle = async () => {
+  const provider = new GoogleAuthProvider();
+  try { await signInWithPopup(auth, provider); }
+  catch(e) { console.error(e); showToast('로그인 실패: ' + e.message); }
+};
+
+window.signOut = async () => {
+  if (unsubscribe) unsubscribe();
+  await fbSignOut(auth);
+  currentUser = null;
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('userInfo').style.display = 'none';
+  showToast('로그아웃되었습니다');
+};
+
+// ── 인증 상태 감지 ──
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    currentUser = user;
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('userInfo').style.display = 'flex';
+    document.getElementById('userAvatar').src = user.photoURL || '';
+    document.getElementById('userName').textContent = user.displayName || user.email;
+    await loadUserData();
+  } else {
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('userInfo').style.display = 'none';
+  }
+});
+
+// ── Firestore 저장 ──
+async function saveToFirestore() {
+  if (!currentUser) return;
+  setSaveStatus('saving');
+  try {
+    await setDoc(doc(db, 'users', currentUser.uid, 'data', 'main'), {
+      criteria:   criteria,
+      properties: properties,
+      updatedAt:  new Date().toISOString()
+    });
+    setSaveStatus('saved');
+  } catch(e) {
+    console.error('저장 오류:', e);
+    setSaveStatus('error');
+  }
+}
+
+// ── Firestore 불러오기 ──
+async function loadUserData() {
+  if (!currentUser) return;
+  try {
+    const snap = await getDoc(doc(db, 'users', currentUser.uid, 'data', 'main'));
+    if (snap.exists()) {
+      const data = snap.data();
+      if (data.criteria)   criteria    = data.criteria;
+      if (data.properties) properties  = data.properties;
+      // id 시퀀스 복원
+      if (criteria.must.length)  mustIdSeq = Math.max(...criteria.must.map(m => m.id), 10);
+      if (criteria.opt.length)   optIdSeq  = Math.max(...criteria.opt.map(o => o.id), 10);
+      if (properties.length) currentPropIdx = 0;
+    }
+  } catch(e) {
+    console.error('불러오기 오류:', e);
+  }
+  renderCriteria();
+  calcBudget();
+  if (properties.length > 0) {
+    renderPropTabs();
+    renderPropForm(0);
+  }
+  showToast('✅ 데이터를 불러왔습니다');
+}
+
+// 저장 상태 표시
+function setSaveStatus(state) {
+  const el   = document.getElementById('saveStatus');
+  const dot  = document.getElementById('saveDot');
+  const text = document.getElementById('saveText');
+  el.classList.add('show');
+  if (state === 'saving') {
+    dot.classList.add('saving');
+    text.textContent = '저장 중...';
+  } else if (state === 'saved') {
+    dot.classList.remove('saving');
+    dot.style.background = 'var(--green)';
+    text.textContent = '저장됨';
+    setTimeout(() => el.classList.remove('show'), 2000);
+  } else {
+    dot.style.background = 'var(--red)';
+    text.textContent = '저장 오류';
+  }
+}
+
+// 자동저장 (디바운스 1.5초)
+window.autoSave = function() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveToFirestore, 1500);
+};
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  유틸
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+window.esc = function(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+};
+
+let toastTimer = null;
+window.showToast = function(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
+};
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  탭
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+window.showTab = function(name, el) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  if (el) el.classList.add('active');
+  if (name === 'compare') renderCompare();
+};
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  매입 가능가
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+let scenario = 'sell';
+window.setScenario = function(s) {
+  scenario = s;
+  document.getElementById('btn-sell').classList.toggle('active', s === 'sell');
+  document.getElementById('btn-rent').classList.toggle('active', s === 'rent');
+  document.getElementById('row-sell-estate').style.display = s === 'sell' ? '' : 'none';
+  document.getElementById('row-rent-estate').style.display = s === 'rent' ? '' : 'none';
+  calcBudget();
+};
+
+function vv(id) { return parseFloat(document.getElementById(id)?.value) || 0; }
+
+function fmt(manwon) {
+  if (manwon <= 0) return '-';
+  const eok = manwon / 10000;
+  if (eok >= 1) {
+    const eokInt = Math.floor(eok);
+    const rem = Math.round((eok - eokInt) * 10000);
+    return rem > 0 ? eokInt + '억 ' + rem.toLocaleString() + '만원' : eokInt + '억';
+  }
+  return Math.round(manwon).toLocaleString() + '만원';
+}
+
+function calcBudget() {
+  const cash = vv('b-cash');
+  const estate = scenario === 'sell' ? vv('b-estate-sell') : vv('b-estate-rent');
+  const totalAsset = cash + estate + vv('b-finance') + vv('b-family') + vv('b-deposit') + vv('b-premium') + vv('b-etc');
+  document.getElementById('r-asset').textContent = fmt(totalAsset);
+
+  const loans = [
+    { amt: vv('l-credit-amt'),     rate: vv('l-credit-rate') },
+    { amt: vv('l-collateral-amt'), rate: vv('l-collateral-rate') },
+    { amt: vv('l-policy-amt'),     rate: vv('l-policy-rate') },
+    { amt: vv('l-naeil-amt'),      rate: vv('l-naeil-rate') },
+    { amt: vv('l-insure-amt'),     rate: vv('l-insure-rate') },
+    { amt: vv('l-etc-amt'),        rate: vv('l-etc-rate') },
+  ];
+  const totalLoan     = loans.reduce((s, l) => s + l.amt, 0);
+  const totalInterest = loans.reduce((s, l) => s + (l.amt * l.rate / 100 / 12), 0);
+  document.getElementById('r-loan').textContent = fmt(totalLoan);
+  document.getElementById('r-monthly-interest').textContent = fmt(Math.round(totalInterest)) + '/월';
+
+  const totalSave = vv('b-monthly-save') * (vv('b-months') || 9);
+  document.getElementById('r-saving').textContent = fmt(totalSave);
+
+  const seed = totalAsset + totalLoan + totalSave;
+  document.getElementById('r-seed').textContent = fmt(seed);
+  document.getElementById('r-monthly-total').textContent = fmt(Math.round(totalInterest)) + '/월';
+
+  if (seed > 0) {
+    document.getElementById('r-price-min').textContent = fmt(Math.round(seed / 0.36 / 1000) * 1000);
+    document.getElementById('r-price-max').textContent = fmt(Math.round(seed / 0.26 / 1000) * 1000);
+  } else {
+    document.getElementById('r-price-min').textContent = '-';
+    document.getElementById('r-price-max').textContent = '-';
+  }
+}
+window.calcBudget = calcBudget;
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  상태
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+let criteria = {
+  must: [
+    { id: 1, text: '거주 가능' },
+    { id: 2, text: '1층 직접 사용 가능' },
+    { id: 3, text: '30억 이하' },
+    { id: 4, text: '어머니 거주 가능 (전세)' }
+  ],
+  opt: [
+    { id: 1, text: '방배·이수·마포·신당·약수', score: 20 },
+    { id: 2, text: '역세권 (도보 5분)', score: 5 },
+    { id: 3, text: '수익률 2% 이상', score: 5 },
+    { id: 4, text: '인접도로 6m 이상', score: 5 },
+    { id: 5, text: '유동인구 우수', score: 30 },
+    { id: 6, text: '주차 2대 이상', score: 35 }
+  ]
+};
+let properties     = [];
+let currentPropIdx = 0;
+let mustIdSeq      = 10;
+let optIdSeq       = 10;
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  기준 설정
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function renderCriteria() {
+  document.getElementById('mustList').innerHTML = criteria.must.map(m => `
+    <div class="must-item" id="must-${m.id}">
+      <span style="font-size:12px;color:var(--red)">✓</span>
+      <input type="text" value="${esc(m.text)}" placeholder="필수 조건 입력" oninput="updateMust(${m.id}, this.value)">
+      <button class="del-btn" onclick="delMust(${m.id})">×</button>
+    </div>`).join('');
+
+  document.getElementById('optList').innerHTML = criteria.opt.map(o => `
+    <div class="opt-item" id="opt-${o.id}">
+      <input type="text" value="${esc(o.text)}" placeholder="선택 조건 입력" oninput="updateOpt(${o.id}, 'text', this.value)">
+      <input type="number" class="score-input" value="${o.score}" min="0" max="100" oninput="updateOpt(${o.id}, 'score', +this.value)" placeholder="배점">
+      <span class="score-label">점</span>
+      <button class="del-btn" onclick="delOpt(${o.id})">×</button>
+    </div>`).join('');
+  updateTotalPoints();
+}
+window.renderCriteria = renderCriteria;
+
+window.updateMust = (id, val) => { const i = criteria.must.find(m => m.id === id); if(i) i.text = val; autoSave(); };
+window.updateOpt  = (id, key, val) => { const i = criteria.opt.find(o => o.id === id); if(i) i[key] = val; if(key==='score') updateTotalPoints(); autoSave(); };
+window.addMust = () => { criteria.must.push({ id: ++mustIdSeq, text: '' }); renderCriteria(); setTimeout(() => { const ins = document.querySelectorAll('.must-item input'); if(ins.length) ins[ins.length-1].focus(); }, 50); };
+window.addOpt  = () => { criteria.opt.push({ id: ++optIdSeq, text: '', score: 0 }); renderCriteria(); };
+window.delMust = (id) => { criteria.must = criteria.must.filter(m => m.id !== id); renderCriteria(); autoSave(); };
+window.delOpt  = (id) => { criteria.opt  = criteria.opt.filter(o => o.id !== id);  renderCriteria(); autoSave(); };
+
+function updateTotalPoints() {
+  document.getElementById('totalPoints').textContent = criteria.opt.reduce((s,o) => s+(o.score||0), 0) + '점';
+}
+
+window.saveCriteria = () => {
+  autoSave();
+  showToast('✅ 기준이 저장되었습니다!');
+  showTab('input', document.querySelectorAll('.tab-btn')[2]);
+};
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  매물 관리
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+window.addProperty = () => {
+  const idx = properties.length;
+  properties.push({ name: '매물 '+(idx+1), address:'', price:'', estPrice:'', area:'', landArea:'', floors:'', parking:'', zoning:'', usage:'', deposit:'', rent:'', must:{}, opt:{} });
+  currentPropIdx = idx;
+  renderPropTabs();
+  renderPropForm(idx);
+};
+
+function renderPropTabs() {
+  document.getElementById('propTabs').innerHTML =
+    properties.map((p,i) => `<button class="prop-tab ${i===currentPropIdx?'active':''}" onclick="switchProp(${i})">${esc(p.name)||'매물 '+(i+1)}</button>`).join('') +
+    `<button class="add-prop-btn" onclick="addProperty()">+ 매물 추가</button>`;
+}
+window.renderPropTabs = renderPropTabs;
+
+window.switchProp = (idx) => { currentPropIdx = idx; renderPropTabs(); renderPropForm(idx); };
+
+function renderPropForm(idx) {
+  const p = properties[idx];
+  const mustChecks = criteria.must.length === 0
+    ? `<p style="font-size:13px;color:var(--muted)">기준 설정 탭에서 필수사항을 먼저 설정해주세요</p>`
+    : criteria.must.map(m => {
+        const val = p.must[m.id] || '';
+        return `<div class="must-check"><span>${esc(m.text)}</span><div class="ox-group">
+          <button class="ox-btn o ${val==='O'?'active':''}" onclick="setPropMust(${idx},${m.id},'O',this)">O</button>
+          <button class="ox-btn x ${val==='X'?'active':''}" onclick="setPropMust(${idx},${m.id},'X',this)">X</button>
+        </div></div>`;
+      }).join('');
+
+  const optScores = criteria.opt.length === 0
+    ? `<p style="font-size:13px;color:var(--muted)">기준 설정 탭에서 선택사항을 먼저 설정해주세요</p>`
+    : criteria.opt.map(o => {
+        const val = p.opt[o.id] !== undefined ? p.opt[o.id] : 0;
+        return `<div class="opt-score-item"><span>${esc(o.text)}</span><span class="max">/ ${o.score}점</span>
+          <div class="score-slider-wrap">
+            <input type="range" class="score-slider" min="0" max="${o.score}" value="${val}" step="1"
+                   oninput="setPropOpt(${idx},${o.id},+this.value);this.nextElementSibling.textContent=this.value">
+            <span class="score-display">${val}</span>
+          </div></div>`;
+      }).join('');
+
+  document.getElementById('propFormWrap').innerHTML = `
+    <div class="prop-form">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;flex-wrap:wrap">
+        <input type="text" value="${esc(p.name)}" placeholder="매물 이름"
+               style="font-family:'Noto Serif KR',serif;font-size:18px;font-weight:700;border:none;background:transparent;outline:none;color:var(--ink);flex:1;min-width:140px"
+               oninput="properties[${idx}].name=this.value;renderPropTabs();autoSave()">
+        <button onclick="deleteProp(${idx})" style="background:var(--red-bg);border:1px solid rgba(192,57,43,0.2);color:var(--red);border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer;font-family:'Noto Sans KR',sans-serif">삭제</button>
+      </div>
+      <div class="form-section">
+        <div class="form-section-hd">🏗 건물 기본 정보</div>
+        <div class="form-grid">
+          <div class="form-field full"><label>주소</label><input type="text" value="${esc(p.address)}" placeholder="서울시 ○○구 ○○동 123-4" oninput="properties[${idx}].address=this.value;autoSave()"></div>
+          <div class="form-field"><label>매매가 (억)</label><input type="number" value="${p.price||''}" placeholder="예: 28" oninput="properties[${idx}].price=+this.value;updateCalc(${idx});autoSave()"></div>
+          <div class="form-field"><label>감평금액 추정 (억)</label><input type="number" value="${p.estPrice||''}" placeholder="예: 30" oninput="properties[${idx}].estPrice=+this.value;updateCalc(${idx});autoSave()"></div>
+          <div class="form-field"><label>연면적 (평)</label><input type="number" value="${p.area||''}" placeholder="예: 85" oninput="properties[${idx}].area=+this.value;updateCalc(${idx});autoSave()"></div>
+          <div class="form-field"><label>대지면적 (평)</label><input type="number" value="${p.landArea||''}" placeholder="예: 40" oninput="properties[${idx}].landArea=+this.value;autoSave()"></div>
+          <div class="form-field"><label>지상층/지하층</label><input type="text" value="${esc(p.floors)}" placeholder="예: 지상5층/지하1층" oninput="properties[${idx}].floors=this.value;autoSave()"></div>
+          <div class="form-field"><label>주차 (대)</label><input type="number" value="${p.parking||''}" placeholder="예: 2" oninput="properties[${idx}].parking=+this.value;autoSave()"></div>
+          <div class="form-field"><label>용도지역</label><input type="text" value="${esc(p.zoning)}" placeholder="예: 제2종일반주거" oninput="properties[${idx}].zoning=this.value;autoSave()"></div>
+          <div class="form-field"><label>용도</label><input type="text" value="${esc(p.usage)}" placeholder="예: 올근생" oninput="properties[${idx}].usage=this.value;autoSave()"></div>
+        </div>
+      </div>
+      <div class="form-section">
+        <div class="form-section-hd">💰 임대 정보</div>
+        <div class="form-grid">
+          <div class="form-field"><label>임대 보증금 (억)</label><input type="number" value="${p.deposit||''}" placeholder="예: 0.5" oninput="properties[${idx}].deposit=+this.value;updateCalc(${idx});autoSave()"></div>
+          <div class="form-field"><label>임대 월세 (만원)</label><input type="number" value="${p.rent||''}" placeholder="예: 350" oninput="properties[${idx}].rent=+this.value;updateCalc(${idx});autoSave()"></div>
+          <div class="form-field"><label>수익률 (자동계산)</label><input type="text" id="calc-yield-${idx}" readonly style="background:var(--gold-bg);font-weight:700;color:var(--gold)" value="${calcYield(p)}"></div>
+          <div class="form-field"><label>예상 필요자금 (자동계산)</label><input type="text" id="calc-fund-${idx}" readonly style="background:var(--blue-bg);font-weight:700;color:var(--blue)" value="${calcFund(p)}"></div>
+          <div class="form-field"><label>평당단가 (자동계산)</label><input type="text" id="calc-ppy-${idx}" readonly style="background:var(--bg);font-weight:700" value="${calcPpy(p)}"></div>
+        </div>
+      </div>
+      <div class="form-section">
+        <div class="form-section-hd">✅ 필수 사항 체크</div>
+        <div class="must-check-list">${mustChecks}</div>
+      </div>
+      <div class="form-section">
+        <div class="form-section-hd">⭐ 선택 사항 점수</div>
+        <div class="opt-score-list">${optScores}</div>
+        <div class="total-score-bar" style="margin-top:14px"><span>이 매물 선택사항 합계</span><strong id="prop-total-${idx}">${calcOptTotal(p)}점</strong></div>
+      </div>
+      <button class="save-btn" onclick="saveProp(${idx})">💾 저장</button>
+    </div>`;
+}
+window.renderPropForm = renderPropForm;
+
+window.setPropMust = (pidx, mid, val, el) => {
+  const cur = properties[pidx].must[mid];
+  const nv  = cur === val ? '' : val;
+  properties[pidx].must[mid] = nv;
+  const wrap = el.closest('.ox-group');
+  wrap.querySelectorAll('.ox-btn').forEach(b => b.classList.remove('active'));
+  if (nv === val) el.classList.add('active');
+  autoSave();
+};
+
+window.setPropOpt = (pidx, oid, val) => {
+  properties[pidx].opt[oid] = val;
+  const el = document.getElementById('prop-total-' + pidx);
+  if (el) el.textContent = calcOptTotal(properties[pidx]) + '점';
+  autoSave();
+};
+
+window.updateCalc = (idx) => {
+  const p = properties[idx];
+  const y = document.getElementById('calc-yield-' + idx);
+  const f = document.getElementById('calc-fund-'  + idx);
+  const pp= document.getElementById('calc-ppy-'   + idx);
+  if (y)  y.value  = calcYield(p);
+  if (f)  f.value  = calcFund(p);
+  if (pp) pp.value = calcPpy(p);
+};
+
+function calcYield(p) {
+  if (!p.rent || !p.price) return '-';
+  const net = p.price - (p.deposit || 0);
+  if (net <= 0) return '-';
+  return ((p.rent * 12) / (net * 10000) * 100).toFixed(2) + '%';
+}
+function calcFund(p) {
+  if (!p.price) return '-';
+  const appraisal = p.estPrice || p.price;
+  const fund = p.price - Math.min(p.price, appraisal) * 0.8 + p.price * 0.06;
+  return fund > 0 ? fund.toFixed(1) + '억' : '-';
+}
+function calcPpy(p) {
+  if (!p.price || !p.area) return '-';
+  return Math.round(p.price * 10000 / p.area).toLocaleString() + '만원/평';
+}
+function calcOptTotal(p) {
+  return criteria.opt.reduce((s, o) => s + (p.opt[o.id] || 0), 0);
+}
+function getMustStatus(p) {
+  const vals = criteria.must.map(m => p.must[m.id] || '');
+  if (vals.includes('X'))  return 'fail';
+  if (vals.includes(''))   return 'incomplete';
+  return 'pass';
+}
+function isMustPass(p) { return getMustStatus(p) === 'pass'; }
+
+window.deleteProp = (idx) => {
+  if (!confirm('이 매물을 삭제하시겠어요?')) return;
+  properties.splice(idx, 1);
+  currentPropIdx = Math.max(0, idx - 1);
+  autoSave();
+  renderPropTabs();
+  if (properties.length === 0) {
+    document.getElementById('propFormWrap').innerHTML = `<div class="empty-state"><div class="ei">🏙️</div><p>위 "+ 매물 추가" 버튼을 눌러 매물을 등록해주세요</p></div>`;
+  } else {
+    renderPropForm(currentPropIdx);
+  }
+};
+
+window.saveProp = (idx) => {
+  autoSave();
+  showToast('💾 저장 완료! 비교 분석 탭에서 확인하세요.');
+};
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  비교 분석
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function renderCompare() {
+  const wrap = document.getElementById('compareWrap');
+  if (properties.length === 0) {
+    wrap.innerHTML = `<div class="empty-state"><div class="ei">📋</div><p>매물을 입력하고 저장하면 여기서 비교됩니다</p></div>`;
+    return;
+  }
+  const scored = properties.map((p, i) => ({ ...p, idx: i, status: getMustStatus(p), pass: isMustPass(p), total: calcOptTotal(p) }));
+  const statusOrder = { pass: 0, incomplete: 1, fail: 2 };
+  const sorted = [...scored].sort((a, b) => { const so = statusOrder[a.status] - statusOrder[b.status]; return so !== 0 ? so : b.total - a.total; });
+
+  const propCols  = sorted.map(p => `<th class="prop-col">${esc(p.name)}</th>`).join('');
+  const mustRows  = criteria.must.map(m => `<tr><td style="padding-left:20px;font-size:12px">${esc(m.text)}</td>${sorted.map(p => { const val = p.must[m.id]; return `<td class="center">${val==='O'?'<span class="o-badge">O</span>':val==='X'?'<span class="x-badge">X</span>':'<span style="color:var(--border);font-size:18px">·</span>'}</td>`; }).join('')}</tr>`).join('');
+  const optRows   = criteria.opt.map(o => `<tr><td style="padding-left:20px;font-size:12px">${esc(o.text)} <span style="color:var(--muted);font-size:11px">/ ${o.score}점</span></td>${sorted.map(p => { const val = p.opt[o.id]||0; const pct = o.score>0?(val/o.score*100):0; return `<td><div class="score-bar-wrap"><div class="score-bar-bg"><div class="score-bar-fill" style="width:${pct}%"></div></div><span class="score-num">${val}</span></div></td>`; }).join('')}</tr>`).join('');
+
+  const rankBadge = r => r===1?'<span class="rank-badge rank-1">1</span>':r===2?'<span class="rank-badge rank-2">2</span>':r===3?'<span class="rank-badge rank-3">3</span>':`<span class="rank-badge rank-n">${r}</span>`;
+  const mustBadge = p => p.status==='pass'?`<span style="font-size:12px;font-weight:700;padding:3px 10px;border-radius:99px;background:var(--green-bg);color:var(--green)">✅ 통과</span>`:p.status==='fail'?`<span style="font-size:12px;font-weight:700;padding:3px 10px;border-radius:99px;background:var(--red-bg);color:var(--red)">❌ 탈락</span>`:`<span style="font-size:12px;font-weight:700;padding:3px 10px;border-radius:99px;background:var(--gold-bg);color:var(--gold)">⚠️ 미입력</span>`;
+  const totalPoints = criteria.opt.reduce((s,o)=>s+(o.score||0),0);
+
+  wrap.innerHTML = `
+  <div class="compare-wrap"><table class="compare-table">
+    <thead><tr><th style="min-width:180px">항목</th>${propCols}</tr></thead>
+    <tbody>
+      <tr class="row-hd"><td colspan="${sorted.length+1}">🏗 건물 기본 정보</td></tr>
+      <tr><td>주소</td>${sorted.map(p=>`<td style="font-size:12px">${esc(p.address)||'-'}</td>`).join('')}</tr>
+      <tr><td>매매가</td>${sorted.map(p=>`<td class="num">${p.price?p.price+'억':'-'}</td>`).join('')}</tr>
+      <tr><td>감평금액</td>${sorted.map(p=>`<td class="num">${p.estPrice?p.estPrice+'억':'-'}</td>`).join('')}</tr>
+      <tr><td>평당단가</td>${sorted.map(p=>`<td class="num">${calcPpy(p)}</td>`).join('')}</tr>
+      <tr><td>연면적</td>${sorted.map(p=>`<td class="num">${p.area?p.area+'평':'-'}</td>`).join('')}</tr>
+      <tr><td>층수</td>${sorted.map(p=>`<td>${esc(p.floors)||'-'}</td>`).join('')}</tr>
+      <tr><td>주차</td>${sorted.map(p=>`<td class="num">${p.parking!=null&&p.parking!==''?p.parking+'대':'-'}</td>`).join('')}</tr>
+      <tr><td>용도지역</td>${sorted.map(p=>`<td style="font-size:12px">${esc(p.zoning)||'-'}</td>`).join('')}</tr>
+      <tr class="row-hd"><td colspan="${sorted.length+1}">💰 임대 · 수익</td></tr>
+      <tr><td>임대 보증금</td>${sorted.map(p=>`<td class="num">${p.deposit?p.deposit+'억':'-'}</td>`).join('')}</tr>
+      <tr><td>임대 월세</td>${sorted.map(p=>`<td class="num">${p.rent?p.rent+'만원':'-'}</td>`).join('')}</tr>
+      <tr><td>수익률</td>${sorted.map(p=>`<td class="num" style="color:var(--green)">${calcYield(p)}</td>`).join('')}</tr>
+      <tr><td>예상 필요자금</td>${sorted.map(p=>`<td class="num" style="color:var(--blue)">${calcFund(p)}</td>`).join('')}</tr>
+      <tr class="row-hd"><td colspan="${sorted.length+1}">✅ 필수 사항</td></tr>
+      ${mustRows}
+      <tr><td style="font-weight:700">필수 통과 여부</td>${sorted.map(p=>`<td class="center">${mustBadge(p)}</td>`).join('')}</tr>
+      <tr class="row-hd"><td colspan="${sorted.length+1}">⭐ 선택 사항 점수</td></tr>
+      ${optRows}
+      <tr class="total-row"><td>🏆 총점 (${totalPoints}점 만점)</td>${sorted.map((p,rank)=>`<td><div style="display:flex;align-items:center;gap:8px;justify-content:center">${rankBadge(rank+1)}<span style="font-size:18px;font-weight:900;color:${p.pass?'var(--gold)':'var(--muted)'}">${p.total}점</span></div></td>`).join('')}</tr>
+    </tbody>
+  </table></div>
+  <div style="margin-top:16px;padding:14px 18px;background:var(--blue-bg);border:1px solid rgba(26,95,168,0.15);border-radius:10px;font-size:12px;color:var(--muted);line-height:1.8">
+    <strong style="color:var(--blue)">📌 분석 기준</strong><br>
+    ✅ <strong>통과</strong>: 모든 필수항목 O 선택 &nbsp;|&nbsp; ⚠️ <strong>미입력</strong>: 체크 안 된 항목 있음 &nbsp;|&nbsp; ❌ <strong>탈락</strong>: 하나 이상 X 선택
+  </div>`;
+}
+window.renderCompare = renderCompare;
+
+// 초기 실행
+renderCriteria();
+calcBudget();
+
+</script>
+</body>
+</html>

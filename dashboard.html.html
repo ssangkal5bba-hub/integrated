@@ -1,0 +1,632 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>건물 매물 대시보드</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+:root{
+  --bg:#0a0c10;--sf:#12151c;--s2:#1a1e28;--bd:#252a38;
+  --mapo:#3b82f6;--mpd:rgba(59,130,246,.14);
+  --yongsan:#f59e0b;--ysd:rgba(245,158,11,.14);
+  --seongdong:#10b981;--sdd:rgba(16,185,129,.14);
+  --text:#e8eaf0;--muted:#6b7280;--accent:#c8ff00;
+  --sb:360px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;overflow:hidden;font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);}
+.app{display:flex;flex-direction:column;height:100vh;}
+
+/* TOP BAR */
+.topbar{display:flex;align-items:center;gap:10px;padding:0 14px 0 18px;height:52px;min-height:52px;background:var(--sf);border-bottom:1px solid var(--bd);position:relative;flex-shrink:0;overflow-x:auto;}
+.topbar::-webkit-scrollbar{display:none;}
+.topbar::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--mapo),var(--yongsan),var(--seongdong));}
+.logo{font-size:14px;font-weight:900;letter-spacing:-.04em;white-space:nowrap;flex-shrink:0;}
+.logo em{color:var(--accent);font-style:normal;}
+.vsep{width:1px;height:18px;background:var(--bd);flex-shrink:0;}
+.fg{display:flex;gap:4px;flex-shrink:0;}
+.fb{background:transparent;border:1px solid var(--bd);color:var(--muted);padding:3px 10px;border-radius:20px;font-size:11px;cursor:pointer;font-family:inherit;font-weight:600;transition:all .15s;white-space:nowrap;}
+.fb:hover{border-color:var(--text);color:var(--text);}
+.fb.on{font-weight:700;}
+.fb.all.on{background:var(--text);border-color:var(--text);color:var(--bg);}
+.fb.mapo.on{background:var(--mapo);border-color:var(--mapo);color:#fff;}
+.fb.yongsan.on{background:var(--yongsan);border-color:var(--yongsan);color:#000;}
+.fb.seongdong.on{background:var(--seongdong);border-color:var(--seongdong);color:#000;}
+.srt{background:var(--s2);border:1px solid var(--bd);color:var(--text);padding:4px 22px 4px 9px;border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit;appearance:none;flex-shrink:0;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='9' fill='%236b7280' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 6px center;}
+.tb-cnt{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;white-space:nowrap;margin-left:auto;flex-shrink:0;}
+.tb-cnt b{color:var(--accent);}
+.sb-tog{background:var(--s2);border:1px solid var(--bd);color:var(--muted);width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;flex-shrink:0;transition:all .15s;}
+.sb-tog:hover{color:var(--text);border-color:var(--text);}
+
+/* BODY */
+.body{display:flex;flex:1;overflow:hidden;}
+
+/* MAP */
+.mapwrap{flex:1;position:relative;min-width:0;}
+#map{width:100%;height:100%;}
+.leaflet-container{background:#111418!important;}
+.leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.82) saturate(.85);}
+.leaflet-control-attribution{background:rgba(10,12,16,.85)!important;color:var(--muted)!important;font-size:9px!important;}
+.leaflet-control-attribution a{color:var(--accent)!important;}
+
+/* Map overlays */
+.map-leg{position:absolute;bottom:22px;left:12px;z-index:500;background:rgba(10,12,16,.93);border:1px solid var(--bd);border-radius:9px;padding:10px 14px;backdrop-filter:blur(8px);}
+.leg-t{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:7px;}
+.leg-i{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;margin-bottom:5px;}
+.leg-i:last-child{margin-bottom:0;}
+.leg-d{width:9px;height:9px;border-radius:50%;}
+.map-ov{position:absolute;top:12px;right:12px;z-index:500;background:rgba(10,12,16,.93);border:1px solid var(--bd);border-radius:9px;padding:10px 14px;backdrop-filter:blur(8px);min-width:148px;}
+.ov-r{display:flex;justify-content:space-between;gap:14px;font-size:10px;margin-bottom:4px;}
+.ov-r:last-child{margin-bottom:0;}
+.ov-l{color:var(--muted);}
+.ov-v{font-family:'DM Mono',monospace;font-weight:700;color:var(--accent);}
+
+/* POPUP */
+.leaflet-popup-content-wrapper{background:#0d1017!important;border:1px solid var(--bd)!important;border-radius:10px!important;box-shadow:0 8px 32px rgba(0,0,0,.75)!important;padding:0!important;}
+.leaflet-popup-content{margin:0!important;width:256px!important;}
+.leaflet-popup-tip{background:#0d1017!important;border:1px solid var(--bd)!important;}
+.leaflet-popup-close-button{color:var(--muted)!important;top:8px!important;right:10px!important;font-size:16px!important;z-index:10!important;}
+.pu{padding:14px 16px;}
+.pu-price{font-size:19px;font-weight:900;letter-spacing:-.04em;margin-bottom:3px;}
+.pu-tag{font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;display:inline-block;margin-bottom:8px;}
+.pu-addr{font-size:10px;color:var(--muted);line-height:1.5;margin-bottom:8px;}
+.pu-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:9px;}
+.pu-cell{background:#12151c;border-radius:4px;padding:4px 7px;}
+.pu-cl{font-size:8px;color:var(--muted);margin-bottom:1px;}
+.pu-cv{font-size:10px;font-weight:700;font-family:'DM Mono',monospace;}
+.pu-btns{display:flex;gap:5px;}
+.pu-btn{flex:1;display:block;text-align:center;border-radius:5px;padding:6px;font-size:10px;font-weight:700;text-decoration:none;border:1px solid;transition:opacity .15s;}
+.pu-btn:hover{opacity:.8;}
+.pu-main{background:rgba(59,130,246,.15);border-color:#3b82f6;color:#3b82f6;}
+.pu-main.ys{background:rgba(245,158,11,.15);border-color:#f59e0b;color:#f59e0b;}
+.pu-main.sd{background:rgba(16,185,129,.15);border-color:#10b981;color:#10b981;}
+.pu-road{background:rgba(3,199,90,.12);border-color:#03c75a;color:#03c75a;}.cl-pin{background:rgba(200,255,0,.07);color:var(--accent);border-color:rgba(200,255,0,.25);cursor:pointer;flex:.8;}
+.cl-vm{background:rgba(99,179,237,.1);color:#63b3ed;border-color:rgba(99,179,237,.35);}
+.pu-btn.pu-vm{background:rgba(99,179,237,.13);border-color:#63b3ed;color:#63b3ed;}
+.c-dt{position:absolute;top:8px;right:8px;font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;}
+
+/* SIDEBAR */
+.sidebar{width:var(--sb);flex-shrink:0;display:flex;flex-direction:column;border-left:1px solid var(--bd);background:var(--bg);transition:width .25s,opacity .25s;overflow:hidden;}
+.sidebar.closed{width:0;opacity:0;}
+
+/* sidebar stats */
+.sb-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--bd);border-bottom:1px solid var(--bd);flex-shrink:0;}
+.sb-sc{background:var(--sf);padding:8px 10px;}
+.sb-sl{font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:500;}
+.sb-sv{font-size:12px;font-weight:900;margin-top:1px;font-family:'DM Mono',monospace;letter-spacing:-.03em;}
+.sb-ss{font-size:8px;color:var(--muted);}
+
+/* mini chart */
+.sb-chart-wrap{padding:8px 11px 6px;border-bottom:1px solid var(--bd);flex-shrink:0;}
+.sb-chart-lbl{font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;}
+.sb-chart{display:flex;gap:2px;align-items:flex-end;height:30px;}
+.sb-bw{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;}
+.sb-b{width:100%;border-radius:2px 2px 0 0;min-height:2px;}
+.sb-bl{font-size:7px;color:var(--muted);font-family:'DM Mono',monospace;}
+
+/* card list */
+.sb-list{flex:1;overflow-y:auto;padding:8px;}
+.sb-list::-webkit-scrollbar{width:3px;}
+.sb-list::-webkit-scrollbar-thumb{background:var(--bd);border-radius:2px;}
+
+/* group header */
+.grp-hd{display:flex;align-items:center;gap:7px;padding:5px 3px 5px;margin-top:8px;margin-bottom:5px;border-bottom:1px solid var(--bd);position:sticky;top:0;background:var(--bg);z-index:2;}
+.grp-hd:first-child{margin-top:0;}
+.grp-d{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.grp-nm{font-size:11px;font-weight:700;}
+.grp-cnt{font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;margin-left:auto;}
+
+/* CARD */
+.card{background:var(--sf);border:1px solid var(--bd);border-radius:8px;padding:10px 11px;position:relative;overflow:hidden;cursor:pointer;transition:transform .15s,border-color .15s,box-shadow .15s;margin-bottom:6px;}
+.card:hover{transform:translateX(-2px);box-shadow:3px 0 14px rgba(0,0,0,.45);}
+.card.mapo:hover{border-color:var(--mapo);}
+.card.yongsan:hover{border-color:var(--yongsan);}
+.card.seongdong:hover{border-color:var(--seongdong);}
+.card.hl{border-color:var(--accent)!important;box-shadow:0 0 0 1px rgba(200,255,0,.28),2px 0 12px rgba(0,0,0,.5)!important;animation:hl-pulse .4s ease;}
+@keyframes hl-pulse{0%,100%{transform:translateX(0)}50%{transform:translateX(-3px)}}
+.str{position:absolute;top:0;left:0;width:2px;height:100%;border-radius:8px 0 0 8px;}
+.card.mapo .str{background:var(--mapo);}
+.card.yongsan .str{background:var(--yongsan);}
+.card.seongdong .str{background:var(--seongdong);}
+.c-r1{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:3px;}
+.c-price{font-size:15px;font-weight:900;letter-spacing:-.04em;}
+.card.mapo .c-price{color:var(--mapo);}
+.card.yongsan .c-price{color:var(--yongsan);}
+.card.seongdong .c-price{color:var(--seongdong);}
+.c-no{font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;letter-spacing:.03em;}
+.card.mapo .c-no{background:var(--mpd);color:var(--mapo);}
+.card.yongsan .c-no{background:var(--ysd);color:var(--yongsan);}
+.card.seongdong .c-no{background:var(--sdd);color:var(--seongdong);}
+.c-addr{font-size:9px;color:var(--muted);line-height:1.4;margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
+.c-specs{display:flex;gap:3px;margin-bottom:6px;flex-wrap:wrap;}
+.c-sp{background:var(--bg);border-radius:3px;padding:2px 5px;font-size:9px;color:var(--muted);white-space:nowrap;}
+.c-sp b{color:var(--text);font-family:'DM Mono',monospace;font-weight:700;}
+.c-links{display:flex;gap:4px;}
+.cl{flex:1;display:flex;align-items:center;justify-content:center;gap:3px;padding:4px;border-radius:4px;font-size:9px;font-weight:700;text-decoration:none;transition:opacity .15s;border:1px solid;}
+.cl:hover{opacity:.8;}
+.cl-r{background:rgba(3,199,90,.1);color:#03c75a;border-color:rgba(3,199,90,.4);}
+
+@media(max-width:768px){
+  :root{--sb:100%;}
+  .body{flex-direction:column;}
+  .mapwrap{height:55vh;flex:none;}
+  .sidebar{width:100%!important;border-left:none;border-top:1px solid var(--bd);flex:1;opacity:1!important;}
+  .sidebar.closed{height:0;flex:none;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="logo">🏢 건물 매물 <em>대시보드</em></div>
+  <div class="vsep"></div>
+  <div class="fg">
+    <button class="fb all on" onclick="setF('all',this)">전체</button>
+    <button class="fb mapo" onclick="setF('mapo',this)">마포구</button>
+    <button class="fb yongsan" onclick="setF('yongsan',this)">용산구</button>
+    <button class="fb seongdong" onclick="setF('seongdong',this)">성동구</button>
+  </div>
+  <div class="vsep"></div>
+  <select class="srt" id="srtSel" onchange="setS()">
+    <option value="pa">가격 낮은순</option>
+    <option value="pd">가격 높은순</option>
+    <option value="dd">최신 등록순</option>
+    <option value="ld">대지 넓은순</option>
+    <option value="ad">총면적 넓은순</option>
+  </select>
+  <div class="tb-cnt">매물 <b id="cntN">90</b>개</div>
+  <div class="vsep"></div>
+  <div class="sb-tog" id="sbTog" onclick="toggleSB()" title="목록 패널 토글">☰</div>
+</div>
+
+<!-- BODY -->
+<div class="body">
+
+  <!-- MAP -->
+  <div class="mapwrap">
+    <div id="map"></div>
+    <!-- legend -->
+    <div class="map-leg">
+      <div class="leg-t">구별 범례</div>
+      <div class="leg-i"><div class="leg-d" style="background:var(--mapo)"></div>마포구 (30)</div>
+      <div class="leg-i"><div class="leg-d" style="background:var(--yongsan)"></div>용산구 (30)</div>
+      <div class="leg-i"><div class="leg-d" style="background:var(--seongdong)"></div>성동구 (30)</div>
+    </div>
+    <!-- stats -->
+    <div class="map-ov">
+      <div class="ov-r"><span class="ov-l">표시 핀</span><span class="ov-v" id="mPins">90</span></div>
+      <div class="ov-r"><span class="ov-l">평균가</span><span class="ov-v" id="mAvg">—</span></div>
+      <div class="ov-r"><span class="ov-l">최저가</span><span class="ov-v" id="mMin">—</span></div>
+      <div class="ov-r"><span class="ov-l">최고가</span><span class="ov-v" id="mMax">—</span></div>
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar" id="sidebar">
+    <div class="sb-stats">
+      <div class="sb-sc"><div class="sb-sl">최저가</div><div class="sb-sv" id="sMin">—</div><div class="sb-ss">억원</div></div>
+      <div class="sb-sc"><div class="sb-sl">평균가</div><div class="sb-sv" id="sAvg">—</div><div class="sb-ss">억원</div></div>
+      <div class="sb-sc"><div class="sb-sl">최고가</div><div class="sb-sv" id="sMax">—</div><div class="sb-ss">억원</div></div>
+      <div class="sb-sc"><div class="sb-sl">평균 대지</div><div class="sb-sv" id="sLand">—</div><div class="sb-ss">평</div></div>
+      <div class="sb-sc"><div class="sb-sl">평균 면적</div><div class="sb-sv" id="sArea">—</div><div class="sb-ss">평</div></div>
+      <div class="sb-sc"><div class="sb-sl">지하층 포함</div><div class="sb-sv" id="sBsmt">—</div><div class="sb-ss">개</div></div>
+    </div>
+    <div class="sb-chart-wrap">
+      <div class="sb-chart-lbl">가격대별 분포</div>
+      <div class="sb-chart" id="sbChart"></div>
+    </div>
+    <div class="sb-list" id="sbList"></div>
+  </div>
+
+</div><!-- /body -->
+</div><!-- /app -->
+
+<script>
+/* ══════════════════════════════════════
+   DATA — 좌표 미리 내장 (즉시 로딩)
+   lat/lng: 카카오맵 기준 실제 주소 좌표
+══════════════════════════════════════ */
+// 밸류맵 URL — /properties/lands/PNU 방식 (필지 직접 링크)
+const VM = {
+  "mapo-1":"https://www.valueupmap.com/properties/lands/1144011500101680004",
+  "mapo-2":"https://www.valueupmap.com/properties/lands/1144011100103900005",
+  "mapo-3":"https://www.valueupmap.com/properties/lands/1144011000101650032",
+  "mapo-4":"https://www.valueupmap.com/properties/lands/1144010600100720013",
+  "mapo-5":"https://www.valueupmap.com/properties/lands/1144011500104000073",
+  "mapo-6":"https://www.valueupmap.com/properties/lands/1144011200104530006",
+  "mapo-7":"https://www.valueupmap.com/properties/lands/1144011100103910007",
+  "mapo-8":"https://www.valueupmap.com/properties/lands/1144011500100350075",
+  "mapo-9":"https://www.valueupmap.com/properties/lands/1144010300105370000",
+  "mapo-10":"https://www.valueupmap.com/properties/lands/1144010200103570000",
+  "mapo-11":"https://www.valueupmap.com/properties/lands/1144011400102600005",
+  "mapo-12":"https://www.valueupmap.com/properties/lands/1144011300102410007",
+  "mapo-13":"https://www.valueupmap.com/properties/lands/1144011000101740003",
+  "mapo-14":"https://www.valueupmap.com/properties/lands/1144010800100660000",
+  "mapo-15":"https://www.valueupmap.com/properties/lands/1144011000103950007",
+  "mapo-16":"https://www.valueupmap.com/properties/lands/1144011300102270007",
+  "mapo-17":"https://www.valueupmap.com/properties/lands/1144011500105460003",
+  "mapo-18":"https://www.valueupmap.com/properties/lands/1144010500101200009",
+  "mapo-19":"https://www.valueupmap.com/properties/lands/1144010500100490008",
+  "mapo-20":"https://www.valueupmap.com/properties/lands/1144011500104000015",
+  "mapo-21":"https://www.valueupmap.com/properties/lands/1144011000104670015",
+  "mapo-22":"https://www.valueupmap.com/properties/lands/1144010800104040001",
+  "mapo-23":"https://www.valueupmap.com/properties/lands/1144011000104670015",
+  "mapo-24":"https://www.valueupmap.com/properties/lands/1144010800100740033",
+  "mapo-25":"https://www.valueupmap.com/properties/lands/1144010500100530034",
+  "mapo-26":"https://www.valueupmap.com/properties/lands/1144011400102520019",
+  "mapo-27":"https://www.valueupmap.com/properties/lands/1144011300102410007",
+  "mapo-28":"https://www.valueupmap.com/properties/lands/1144010900103640057",
+  "mapo-29":"https://www.valueupmap.com/properties/lands/1144010300105370000",
+  "mapo-30":"https://www.valueupmap.com/properties/lands/1144010700103880000",
+  "yongsan-1":"https://www.valueupmap.com/properties/lands/1117013400100740022",
+  "yongsan-2":"https://www.valueupmap.com/properties/lands/1117010100102020008",
+  "yongsan-3":"https://www.valueupmap.com/properties/lands/1117010200100950046",
+  "yongsan-4":"https://www.valueupmap.com/properties/lands/1117010600100110000",
+  "yongsan-5":"https://www.valueupmap.com/properties/lands/1117011300101480048",
+  "yongsan-6":"https://www.valueupmap.com/properties/lands/1117014000100960001",
+  "yongsan-7":"https://www.valueupmap.com/properties/lands/1117013700102700006",
+  "yongsan-8":"https://www.valueupmap.com/properties/lands/1117010300103740033",
+  "yongsan-9":"https://www.valueupmap.com/properties/lands/1117011800100010499",
+  "yongsan-10":"https://www.valueupmap.com/properties/lands/1117013700101890004",
+  "yongsan-11":"https://www.valueupmap.com/properties/lands/1117010200100950046",
+  "yongsan-12":"https://www.valueupmap.com/properties/lands/1117013700101990018",
+  "yongsan-13":"https://www.valueupmap.com/properties/lands/1117010100102020008",
+  "yongsan-14":"https://www.valueupmap.com/properties/lands/1117010800101740000",
+  "yongsan-15":"https://www.valueupmap.com/properties/lands/1117014000102100026",
+  "yongsan-16":"https://www.valueupmap.com/properties/lands/1117014000101660009",
+  "yongsan-17":"https://www.valueupmap.com/properties/lands/1117010600103490000",
+  "yongsan-18":"https://www.valueupmap.com/properties/lands/1117013700101930012",
+  "yongsan-19":"https://www.valueupmap.com/properties/lands/1117010600100210009",
+  "yongsan-20":"https://www.valueupmap.com/properties/lands/1117010100102020008",
+  "yongsan-21":"https://www.valueupmap.com/properties/lands/1117010600103490000",
+  "yongsan-22":"https://www.valueupmap.com/properties/lands/1117011100100400006",
+  "yongsan-23":"https://www.valueupmap.com/properties/lands/1117012600100890007",
+  "yongsan-24":"https://www.valueupmap.com/properties/lands/1117010400102020040",
+  "yongsan-25":"https://www.valueupmap.com/properties/lands/1117010100101310009",
+  "yongsan-26":"https://www.valueupmap.com/properties/lands/1117014000100960057",
+  "yongsan-27":"https://www.valueupmap.com/properties/lands/1117010200101320012",
+  "yongsan-28":"https://www.valueupmap.com/properties/lands/1117010600100110000",
+  "yongsan-29":"https://www.valueupmap.com/properties/lands/1117013700102700006",
+  "yongsan-30":"https://www.valueupmap.com/properties/lands/1117010100101340000",
+  "seongdong-1":"https://www.valueupmap.com/properties/lands/1120010700113290040",
+  "seongdong-2":"https://www.valueupmap.com/properties/lands/1120010900101480029",
+  "seongdong-3":"https://www.valueupmap.com/properties/lands/1120010600100030002",
+  "seongdong-4":"https://www.valueupmap.com/properties/lands/1120010900100700003",
+  "seongdong-5":"https://www.valueupmap.com/properties/lands/1120010900100700001",
+  "seongdong-6":"https://www.valueupmap.com/properties/lands/1120010600100140003",
+  "seongdong-7":"https://www.valueupmap.com/properties/lands/1120010900101420016",
+  "seongdong-8":"https://www.valueupmap.com/properties/lands/1120011200101970016",
+  "seongdong-9":"https://www.valueupmap.com/properties/lands/1120010900103030009",
+  "seongdong-10":"https://www.valueupmap.com/properties/lands/1120010900100760020",
+  "seongdong-11":"https://www.valueupmap.com/properties/lands/1120010900102820008",
+  "seongdong-12":"https://www.valueupmap.com/properties/lands/1120011200102020000",
+  "seongdong-13":"https://www.valueupmap.com/properties/lands/1120011100100470009",
+  "seongdong-14":"https://www.valueupmap.com/properties/lands/1120010600100220000",
+  "seongdong-15":"https://www.valueupmap.com/properties/lands/1120011400100980001",
+  "seongdong-16":"https://www.valueupmap.com/properties/lands/1120011200100350000",
+  "seongdong-17":"https://www.valueupmap.com/properties/lands/1120010200100260010",
+  "seongdong-18":"https://www.valueupmap.com/properties/lands/1120010900102850012",
+  "seongdong-19":"https://www.valueupmap.com/properties/lands/1120010600100460005",
+  "seongdong-20":"https://www.valueupmap.com/properties/lands/1120011400100280001",
+  "seongdong-21":"https://www.valueupmap.com/properties/lands/1120010200100260017",
+  "seongdong-22":"https://www.valueupmap.com/properties/lands/1120011400100310021",
+  "seongdong-23":"https://www.valueupmap.com/properties/lands/1120010100100050000",
+  "seongdong-24":"https://www.valueupmap.com/properties/lands/1120010600100460011",
+  "seongdong-25":"https://www.valueupmap.com/properties/lands/1120010900100850010",
+  "seongdong-26":"https://www.valueupmap.com/properties/lands/1120011200100610000",
+  "seongdong-27":"https://www.valueupmap.com/properties/lands/1120010900100700003",
+  "seongdong-28":"https://www.valueupmap.com/properties/lands/1120011400100310021",
+  "seongdong-29":"https://www.valueupmap.com/properties/lands/1120010100100190011",
+  "seongdong-30":"https://www.valueupmap.com/properties/lands/1120010200100220030",
+};
+function vmUrl(addr){ return VM[addr]||'https://www.valueupmap.com/map'; }
+
+// 네이버 지도 주소 검색 URL
+function naverMapUrl(addr){
+  const full = addr.startsWith('서울') ? addr : '서울특별시 ' + addr;
+  return 'https://map.naver.com/v5/search/' + encodeURIComponent(full);
+}
+
+const RAW = [
+  // ── 마포구 ──
+  {d:'mapo',n:1, dt:'26.01.03',p:12,  fl:'3/-',  la:15.13,ar:20.58,lm:50, am:68.04, addr:'마포구 새창로4라길 14',     url:'https://tax.pub/4kWY',rd:'https://tax.pub/Tw4Z', lat:37.5423,lng:126.9486},
+  {d:'mapo',n:2, dt:'26.01.05',p:14,  fl:'1/B1', la:32.97,ar:21.96,lm:109,am:72.59, addr:'마포구 희우정로16길 21-5', url:'https://tax.pub/cKaj',rd:'https://tax.pub/3icd', lat:37.5505,lng:126.9148},
+  {d:'mapo',n:3, dt:'26.01.05',p:13,  fl:'2/B1', la:15.43,ar:26.99,lm:51, am:89.22, addr:'마포구 동교로9길 76',       url:'https://tax.pub/pLdZ',rd:'https://tax.pub/rtJU', lat:37.5575,lng:126.9230},
+  {d:'mapo',n:4, dt:'26.01.05',p:20,  fl:'2/B1', la:39.93,ar:70.93,lm:132,am:234.49,addr:'마포구 대흥로14길 13',      url:'https://tax.pub/tfU3',rd:'https://tax.pub/eqg4', lat:37.5492,lng:126.9411},
+  {d:'mapo',n:5, dt:'26.01.05',p:12,  fl:'1/-',  la:19.96,ar:14.88,lm:66, am:49.19, addr:'마포구 성암로15길 73',      url:'https://tax.pub/ixDZ',rd:'https://tax.pub/sZQR', lat:37.5742,lng:126.8907},
+  {d:'mapo',n:6, dt:'26.01.05',p:20,  fl:'1/B1', la:46.59,ar:48.92,lm:154,am:161.72,addr:'마포구 망원로11길 53-6',   url:'https://tax.pub/RkpZ',rd:'https://tax.pub/ywIn', lat:37.5561,lng:126.9032},
+  {d:'mapo',n:7, dt:'26.01.06',p:13,  fl:'1/B1', la:28.43,ar:20.08,lm:94, am:66.38, addr:'마포구 희우정로15길 10-7', url:'https://tax.pub/xqby',rd:'https://tax.pub/GI9b', lat:37.5498,lng:126.9153},
+  {d:'mapo',n:8, dt:'26.01.06',p:12,  fl:'3/-',  la:12.71,ar:16.83,lm:42, am:55.65, addr:'마포구 매봉산로2길 75',    url:'https://tax.pub/GYGj',rd:'https://tax.pub/NUe6', lat:37.5638,lng:126.9062},
+  {d:'mapo',n:9, dt:'26.01.06',p:17,  fl:'4/-',  la:34.48,ar:76.86,lm:114,am:254.08,addr:'마포구 도화2길 53',        url:'https://tax.pub/jvEo',rd:'https://tax.pub/8v8w', lat:37.5389,lng:126.9514},
+  {d:'mapo',n:10,dt:'26.01.06',p:20,  fl:'4/-',  la:29.64,ar:54.79,lm:98, am:181.12,addr:'마포구 마포대로4가길 45',  url:'https://tax.pub/BTRc',rd:'https://tax.pub/i7XT', lat:37.5378,lng:126.9490},
+  {d:'mapo',n:11,dt:'26.01.07',p:16,  fl:'2/-',  la:29.95,ar:20.23,lm:99, am:66.86, addr:'마포구 월드컵북로44길 35-5',url:'https://tax.pub/c149',rd:'https://tax.pub/Zx2M',lat:37.5703,lng:126.9188},
+  {d:'mapo',n:12,dt:'26.01.07',p:19.3,fl:'2/B1', la:54.75,ar:75.58,lm:181,am:249.84,addr:'마포구 월드컵로10길 13-7',url:'https://tax.pub/c1OL',rd:'https://tax.pub/lHsP', lat:37.5657,lng:126.9183},
+  {d:'mapo',n:13,dt:'26.01.07',p:18,  fl:'4/-',  la:22.99,ar:39.8, lm:76, am:131.57,addr:'마포구 동교로51길 117-3', url:'https://tax.pub/GpcM',rd:'https://tax.pub/suy0', lat:37.5610,lng:126.9247},
+  {d:'mapo',n:14,dt:'26.01.08',p:20,  fl:'1/-',  la:32.67,ar:17.41,lm:108,am:57.55, addr:'마포구 신수로 62',        url:'https://tax.pub/lSR7',rd:'https://tax.pub/zB6W', lat:37.5456,lng:126.9424},
+  {d:'mapo',n:15,dt:'26.01.10',p:19.5,fl:'2/-',  la:39.93,ar:43.44,lm:132,am:143.6, addr:'마포구 성미산로17길 7',   url:'https://tax.pub/h3fQ',rd:'https://tax.pub/VPys', lat:37.5672,lng:126.9247},
+  {d:'mapo',n:16,dt:'26.01.13',p:14.3,fl:'3/B1', la:40.53,ar:81.49,lm:134,am:269.4, addr:'마포구 연남로 73-7',      url:'https://tax.pub/hgJi',rd:'https://tax.pub/Rog6', lat:37.5638,lng:126.9231},
+  {d:'mapo',n:17,dt:'26.01.14',p:15,  fl:'4/-',  la:16.34,ar:38.07,lm:54, am:125.84,addr:'마포구 성암로 211-3',     url:'https://tax.pub/OeZJ',rd:'https://tax.pub/4CFz', lat:37.5756,lng:126.8924},
+  {d:'mapo',n:18,dt:'26.01.14',p:18.9,fl:'4/-',  la:20.87,ar:41.7, lm:69, am:137.84,addr:'마포구 토정로3길 9',      url:'https://tax.pub/EJhK',rd:'https://tax.pub/Bkx4', lat:37.5365,lng:126.9527},
+  {d:'mapo',n:19,dt:'26.01.14',p:16,  fl:'2/B1', la:23.59,ar:30.38,lm:78, am:100.44,addr:'마포구 토정로 49-8',      url:'https://tax.pub/hcmm',rd:'https://tax.pub/iiPw', lat:37.5371,lng:126.9501},
+  {d:'mapo',n:20,dt:'26.01.16',p:20,  fl:'4/-',  la:28.74,ar:47.22,lm:95, am:156.11,addr:'마포구 성암로15길 15',    url:'https://tax.pub/mxMU',rd:'https://tax.pub/qALe', lat:37.5739,lng:126.8917},
+  {d:'mapo',n:21,dt:'26.01.16',p:18,  fl:'2/B1', la:43.56,ar:71.93,lm:144,am:237.78,addr:'마포구 성미산로13길 115', url:'https://tax.pub/nLOo',rd:'https://tax.pub/HXBQ', lat:37.5661,lng:126.9243},
+  {d:'mapo',n:22,dt:'26.01.16',p:11,  fl:'1/B1', la:29.95,ar:12.27,lm:99, am:40.56, addr:'마포구 독막로 258-4',     url:'https://tax.pub/2iSb',rd:'https://tax.pub/D2iB', lat:37.5358,lng:126.9481},
+  {d:'mapo',n:23,dt:'26.01.16',p:18,  fl:'2/B1', la:43.56,ar:71.93,lm:144,am:237.78,addr:'마포구 성미산로13길 115', url:'https://tax.pub/nMft',rd:'https://tax.pub/my1i', lat:37.5663,lng:126.9240},
+  {d:'mapo',n:24,dt:'26.01.16',p:13.9,fl:'3/-',  la:29.95,ar:40.4, lm:99, am:133.55,addr:'마포구 신수로8길 33',     url:'https://tax.pub/vJyb',rd:'https://tax.pub/Tliq', lat:37.5462,lng:126.9430},
+  {d:'mapo',n:25,dt:'26.01.19',p:20,  fl:'4/-',  la:31.46,ar:46.11,lm:104,am:152.43,addr:'마포구 토정로4길 34',     url:'https://tax.pub/VXxD',rd:'https://tax.pub/aTyX', lat:37.5374,lng:126.9517},
+  {d:'mapo',n:26,dt:'26.01.19',p:19,  fl:'5/B1', la:33.88,ar:60.95,lm:112,am:201.5, addr:'마포구 월드컵북로42라길 19',url:'https://tax.pub/2pC2',rd:'https://tax.pub/CsFA',lat:37.5698,lng:126.9192},
+  {d:'mapo',n:27,dt:'26.01.21',p:19.3,fl:'2/B1', la:54.75,ar:75.58,lm:181,am:249.84,addr:'마포구 월드컵로10길 13-7',url:'https://tax.pub/gR5o',rd:'https://tax.pub/yvDH', lat:37.5659,lng:126.9186},
+  {d:'mapo',n:28,dt:'26.01.27',p:15,  fl:'2/B1', la:26.92,ar:29.82,lm:89, am:98.58, addr:'마포구 서강로16길 57',    url:'https://tax.pub/9A63',rd:'https://tax.pub/AJN8', lat:37.5462,lng:126.9372},
+  {d:'mapo',n:29,dt:'26.01.28',p:17,  fl:'4/-',  la:34.48,ar:76.86,lm:114,am:254.08,addr:'마포구 도화2길 53',       url:'https://m.land.naver.com/article/info/2605421731',rd:'https://tax.pub/hAPM',lat:37.5391,lng:126.9513},
+  {d:'mapo',n:30,dt:'26.01.28',p:13,  fl:'전체/2',la:14.52,ar:31.43,lm:48, am:103.9, addr:'마포구 독막로 222',       url:'https://tax.pub/t4kl',rd:'https://tax.pub/Swow', lat:37.5352,lng:126.9474},
+  // ── 용산구 ──
+  {d:'yongsan',n:1, dt:'26.01.03',p:19.8,fl:'3/B1',la:26.92,ar:38.72,lm:89, am:128,  addr:'용산구 신흥로26길 11-22',     url:'https://tax.pub/EXw9',rd:'https://tax.pub/nPgK', lat:37.5394,lng:127.0042},
+  {d:'yongsan',n:2, dt:'26.01.05',p:13,  fl:'4/-', la:13.91,ar:27.78,lm:46, am:91.84, addr:'용산구 새창로14길 8',         url:'https://tax.pub/lk81',rd:'https://tax.pub/qM55', lat:37.5418,lng:126.9681},
+  {d:'yongsan',n:3, dt:'26.01.05',p:15,  fl:'2/-', la:7.26, ar:10.1, lm:24, am:33.38, addr:'용산구 한강대로10길 11-46',   url:'https://tax.pub/QjLq',rd:'https://tax.pub/k575', lat:37.5395,lng:126.9727},
+  {d:'yongsan',n:4, dt:'26.01.05',p:17,  fl:'2/-', la:9.38, ar:21.85,lm:31, am:72.24, addr:'용산구 한강대로 204',         url:'https://tax.pub/cZgy',rd:'https://tax.pub/LTll', lat:37.5402,lng:126.9720},
+  {d:'yongsan',n:5, dt:'26.01.06',p:20,  fl:'2/-', la:13.31,ar:16.6, lm:44, am:54.88, addr:'용산구 백범로99길 48',        url:'https://tax.pub/J7k1',rd:'https://tax.pub/B3H0', lat:37.5452,lng:126.9665},
+  {d:'yongsan',n:6, dt:'26.01.06',p:20,  fl:'2/B1',la:17.85,ar:33.47,lm:59, am:110.63,addr:'용산구 녹사평대로40나길 38-1',url:'https://tax.pub/v6M4',rd:'https://tax.pub/iw2B', lat:37.5350,lng:126.9929},
+  {d:'yongsan',n:7, dt:'26.01.07',p:20,  fl:'3/-', la:22.08,ar:29.13,lm:73, am:96.3,  addr:'용산구 회나무로13가길 23-6', url:'https://tax.pub/LkpC',rd:'https://tax.pub/GdMx', lat:37.5360,lng:126.9981},
+  {d:'yongsan',n:8, dt:'26.01.08',p:15.6,fl:'2/-', la:22.99,ar:25.41,lm:76, am:84,    addr:'용산구 원효로77길 33',        url:'https://tax.pub/p0QU',rd:'https://tax.pub/G0pe', lat:37.5411,lng:126.9604},
+  {d:'yongsan',n:9, dt:'26.01.08',p:17,  fl:'3/-', la:15.43,ar:45.07,lm:51, am:149,   addr:'용산구 용산동2가 1-499',      url:'https://tax.pub/Nz8Y',rd:'https://tax.pub/ZFwK', lat:37.5302,lng:126.9838},
+  {d:'yongsan',n:10,dt:'26.01.09',p:10.5,fl:'2/-', la:15.73,ar:19.31,lm:52, am:63.84, addr:'용산구 회나무로 34-4',        url:'https://tax.pub/U42Z',rd:'https://tax.pub/ktUQ', lat:37.5346,lng:126.9973},
+  {d:'yongsan',n:11,dt:'26.01.09',p:15,  fl:'2/-', la:7.26, ar:10.1, lm:24, am:33.38, addr:'용산구 한강대로10길 11-46',   url:'https://tax.pub/4rtG',rd:'https://tax.pub/FEFp', lat:37.5397,lng:126.9724},
+  {d:'yongsan',n:12,dt:'26.01.10',p:18,  fl:'3/B1',la:21.18,ar:39.77,lm:70, am:131.46,addr:'용산구 회나무로26길 18',      url:'https://tax.pub/0oPm',rd:'https://tax.pub/qUCD', lat:37.5340,lng:126.9966},
+  {d:'yongsan',n:13,dt:'26.01.12',p:13,  fl:'4/-', la:13.91,ar:27.78,lm:46, am:91.84, addr:'용산구 새창로14길 8',         url:'https://tax.pub/x41g',rd:'https://tax.pub/L6Ez', lat:37.5420,lng:126.9679},
+  {d:'yongsan',n:14,dt:'26.01.12',p:11,  fl:'1/-', la:11.19,ar:7,    lm:37, am:23.14, addr:'용산구 만리재로 174',         url:'https://tax.pub/w28k',rd:'https://tax.pub/vRcE', lat:37.5463,lng:126.9638},
+  {d:'yongsan',n:15,dt:'26.01.13',p:20,  fl:'3/B1',la:35.09,ar:57.1, lm:116,am:188.75,addr:'용산구 녹사평대로 210-26',   url:'https://tax.pub/kJrt',rd:'https://tax.pub/bS4k', lat:37.5362,lng:126.9942},
+  {d:'yongsan',n:16,dt:'26.01.14',p:16,  fl:'2/B1',la:13.01,ar:20.7, lm:43, am:68.43, addr:'용산구 녹사평대로46길 9',    url:'https://tax.pub/o3ZY',rd:'https://tax.pub/dlob', lat:37.5343,lng:126.9937},
+  {d:'yongsan',n:17,dt:'26.01.14',p:13,  fl:'7/-', la:9.98, ar:34.77,lm:33, am:114.95,addr:'용산구 한강대로 349',         url:'https://tax.pub/0ZgL',rd:'https://tax.pub/TXBx', lat:37.5289,lng:126.9790},
+  {d:'yongsan',n:18,dt:'26.01.14',p:20,  fl:'2/B1',la:32.06,ar:36.67,lm:106,am:121.22,addr:'용산구 회나무로25길 6-12',   url:'https://tax.pub/Spq7',rd:'https://tax.pub/9NNU', lat:37.5355,lng:126.9974},
+  {d:'yongsan',n:19,dt:'26.01.15',p:11,  fl:'5/B1',la:5.45, ar:9.2,  lm:18, am:30.42, addr:'용산구 한강대로80길 21-9',   url:'https://tax.pub/rRQh',rd:'https://tax.pub/t8Sd', lat:37.5261,lng:126.9748},
+  {d:'yongsan',n:20,dt:'26.01.15',p:13,  fl:'4/-', la:13.91,ar:27.78,lm:46, am:91.84, addr:'용산구 새창로14길 8',         url:'https://tax.pub/iP8x',rd:'https://tax.pub/HvpP', lat:37.5416,lng:126.9682},
+  {d:'yongsan',n:21,dt:'26.01.15',p:12.5,fl:'4/-', la:9.98, ar:34.77,lm:33, am:114.95,addr:'용산구 한강대로 349',         url:'https://tax.pub/vTMe',rd:'https://tax.pub/2Gn4', lat:37.5288,lng:126.9791},
+  {d:'yongsan',n:22,dt:'26.01.16',p:12,  fl:'4/-', la:16.03,ar:31.16,lm:53, am:103,   addr:'용산구 청파로43다길 6',       url:'https://tax.pub/jVbj',rd:'https://tax.pub/oTiR', lat:37.5448,lng:126.9650},
+  {d:'yongsan',n:23,dt:'26.01.16',p:15,  fl:'3/-', la:18.75,ar:26.25,lm:62, am:86.77, addr:'용산구 효창원로69길 8-7',    url:'https://tax.pub/D1jj',rd:'https://tax.pub/ecZd', lat:37.5394,lng:126.9627},
+  {d:'yongsan',n:24,dt:'26.01.16',p:11,  fl:'2/-', la:13.91,ar:15.78,lm:46, am:52.15, addr:'용산구 한강대로50길 40',      url:'https://tax.pub/8ALS',rd:'https://tax.pub/1DxL', lat:37.5348,lng:126.9770},
+  {d:'yongsan',n:25,dt:'26.01.17',p:19,  fl:'2/-', la:23.9, ar:31.26,lm:79, am:103.34,addr:'용산구 새창로 131-9',         url:'https://tax.pub/LKO9',rd:'https://tax.pub/3f1x', lat:37.5411,lng:126.9668},
+  {d:'yongsan',n:26,dt:'26.01.19',p:20,  fl:'2/-', la:10.29,ar:9.67, lm:34, am:31.96, addr:'용산구 이태원동 96-57',       url:'https://tax.pub/1nj7',rd:'https://tax.pub/xjBt', lat:37.5348,lng:126.9980},
+  {d:'yongsan',n:27,dt:'26.01.19',p:17,  fl:'1/B1',la:14.22,ar:11.3, lm:47, am:37.37, addr:'용산구 한강대로14길 35-12',  url:'https://tax.pub/5Dhi',rd:'https://tax.pub/ccdX', lat:37.5406,lng:126.9704},
+  {d:'yongsan',n:28,dt:'26.01.19',p:17.3,fl:'2/-', la:9.38, ar:21.85,lm:31, am:72.24, addr:'용산구 한강대로 204',         url:'https://tax.pub/iRN6',rd:'https://tax.pub/Nu7G', lat:37.5400,lng:126.9718},
+  {d:'yongsan',n:29,dt:'26.01.20',p:20,  fl:'3/-', la:22.08,ar:29.13,lm:73, am:96.3,  addr:'용산구 회나무로13가길 23-6', url:'https://tax.pub/TJ46',rd:'https://tax.pub/qnL4', lat:37.5358,lng:126.9983},
+  {d:'yongsan',n:30,dt:'26.01.20',p:20,  fl:'2/-', la:19.96,ar:23.16,lm:66, am:76.56, addr:'용산구 새창로 134',           url:'https://tax.pub/P4ba',rd:'https://tax.pub/FQvp', lat:37.5408,lng:126.9662},
+  // ── 성동구 ──
+  {d:'seongdong',n:1, dt:'26.01.05',p:16.5,fl:'4/B1',la:24.5, ar:58.71,lm:81, am:194.09,addr:'성동구 금호동4가 1329-40',    url:'https://tax.pub/cQDW',rd:'https://tax.pub/w970', lat:37.5526,lng:127.0155},
+  {d:'seongdong',n:2, dt:'26.01.05',p:16.5,fl:'2/B1',la:35.09,ar:51.84,lm:116,am:171.36,addr:'성동구 송정12라길 29',        url:'https://tax.pub/H1VP',rd:'https://tax.pub/Lq2c', lat:37.5681,lng:127.0428},
+  {d:'seongdong',n:3, dt:'26.01.05',p:15,  fl:'3/-', la:19.36,ar:27.84,lm:64, am:92.04, addr:'성동구 금호산길 3-2',         url:'https://tax.pub/b0BB',rd:'https://tax.pub/8MD0', lat:37.5534,lng:127.0178},
+  {d:'seongdong',n:4, dt:'26.01.07',p:19,  fl:'2/B1',la:34.48,ar:52.03,lm:114,am:172,   addr:'성동구 송정4길 3',            url:'https://tax.pub/Vqbe',rd:'https://tax.pub/dVw3', lat:37.5669,lng:127.0440},
+  {d:'seongdong',n:5, dt:'26.01.07',p:20,  fl:'2/-', la:33.88,ar:40.02,lm:112,am:132.3, addr:'성동구 송정4길 1',            url:'https://tax.pub/7edo',rd:'https://tax.pub/gmhy', lat:37.5671,lng:127.0438},
+  {d:'seongdong',n:6, dt:'26.01.07',p:16,  fl:'3/B1',la:26.02,ar:54.89,lm:86, am:181.46,addr:'성동구 금호로3가길 3',        url:'https://tax.pub/6TXO',rd:'https://tax.pub/ea8b', lat:37.5548,lng:127.0127},
+  {d:'seongdong',n:7, dt:'26.01.08',p:17,  fl:'2/B1',la:29.95,ar:52.27,lm:99, am:172.8, addr:'성동구 송정12길 16',          url:'https://tax.pub/PlIH',rd:'https://tax.pub/ArGL', lat:37.5685,lng:127.0432},
+  {d:'seongdong',n:8, dt:'26.01.08',p:11,  fl:'2/B1',la:17.54,ar:21.33,lm:58, am:70.52, addr:'성동구 고산자로8길 16',       url:'https://tax.pub/b2mM',rd:'https://tax.pub/K5SD', lat:37.5620,lng:127.0333},
+  {d:'seongdong',n:9, dt:'26.01.10',p:17,  fl:'3/B1',la:41.14,ar:71.78,lm:136,am:237.3, addr:'성동구 광나루로 303-9',       url:'https://tax.pub/uJMU',rd:'https://tax.pub/OoFD', lat:37.5636,lng:127.0431},
+  {d:'seongdong',n:10,dt:'26.01.12',p:20,  fl:'1/-', la:20.27,ar:13.77,lm:67, am:45.52, addr:'성동구 무학봉25길 20',        url:'https://tax.pub/xswt',rd:'https://tax.pub/1ET7', lat:37.5609,lng:127.0291},
+  {d:'seongdong',n:11,dt:'26.01.12',p:11.5,fl:'2/B1',la:32.67,ar:50.57,lm:108,am:167.16,addr:'성동구 동일로55길 8',         url:'https://tax.pub/NPhF',rd:'https://tax.pub/2ZON', lat:37.5701,lng:127.0384},
+  {d:'seongdong',n:12,dt:'26.01.12',p:20,  fl:'3/-', la:29.95,ar:56.91,lm:99, am:188.13,addr:'성동구 마장로 202',           url:'https://tax.pub/XJqx',rd:'https://tax.pub/0JXq', lat:37.5649,lng:127.0296},
+  {d:'seongdong',n:13,dt:'26.01.12',p:15,  fl:'4/B1',la:18.45,ar:37.34,lm:61, am:123.45,addr:'성동구 장터5길 9',            url:'https://tax.pub/MC3u',rd:'https://tax.pub/rEoQ', lat:37.5662,lng:127.0368},
+  {d:'seongdong',n:14,dt:'26.01.14',p:17.8,fl:'4/B1',la:15.43,ar:36.29,lm:51, am:119.97,addr:'성동구 금호산길 22',          url:'https://tax.pub/HGhn',rd:'https://tax.pub/9YtJ', lat:37.5531,lng:127.0181},
+  {d:'seongdong',n:15,dt:'26.01.15',p:19.9,fl:'2/-', la:6.96, ar:15.88,lm:23, am:52.5,  addr:'성동구 왕십리로 98-1',        url:'https://tax.pub/NryD',rd:'https://tax.pub/QFJa', lat:37.5614,lng:127.0186},
+  {d:'seongdong',n:16,dt:'26.01.15',p:15,  fl:'4/B1',la:20.27,ar:38.59,lm:67, am:127.58,addr:'성동구 마장로 35',            url:'https://tax.pub/Wk1n',rd:'https://tax.pub/JOmP', lat:37.5645,lng:127.0279},
+  {d:'seongdong',n:17,dt:'26.01.16',p:12.5,fl:'2/B1',la:30.86,ar:30.07,lm:102,am:99.42, addr:'성동구 한림말길 10',          url:'https://tax.pub/4U51',rd:'https://tax.pub/2JTQ', lat:37.5500,lng:127.0132},
+  {d:'seongdong',n:18,dt:'26.01.16',p:20,  fl:'3/B1',la:40.84,ar:90.85,lm:135,am:300.32,addr:'성동구 동일로57길 12',        url:'https://tax.pub/2IrV',rd:'https://tax.pub/V74R', lat:37.5698,lng:127.0395},
+  {d:'seongdong',n:19,dt:'26.01.17',p:10,  fl:'3/B1',la:16.64,ar:40.68,lm:55, am:134.49,addr:'성동구 금호산2길 5',          url:'https://tax.pub/x3iz',rd:'https://tax.pub/pzuz', lat:37.5539,lng:127.0172},
+  {d:'seongdong',n:20,dt:'26.01.19',p:19.5,fl:'3/B1',la:30.86,ar:65.8, lm:102,am:217.53,addr:'성동구 왕십리로28길 28-1',   url:'https://tax.pub/M4H1',rd:'https://tax.pub/rGAm', lat:37.5618,lng:127.0208},
+  {d:'seongdong',n:21,dt:'26.01.19',p:19,  fl:'2/B1',la:27.22,ar:40.07,lm:90, am:132.46,addr:'성동구 한림말길 17',          url:'https://tax.pub/B1Cr',rd:'https://tax.pub/A9if', lat:37.5503,lng:127.0138},
+  {d:'seongdong',n:22,dt:'26.01.20',p:10.5,fl:'2/-', la:26.92,ar:45.1, lm:89, am:149.1, addr:'성동구 왕십리로31나길 21',    url:'https://tax.pub/7our',rd:'https://tax.pub/S3E6', lat:37.5623,lng:127.0222},
+  {d:'seongdong',n:23,dt:'26.01.21',p:17,  fl:'1/B1',la:14.82,ar:14.31,lm:49, am:47.31, addr:'성동구 뚝섬로1가길 5',       url:'https://tax.pub/qnY8',rd:'https://tax.pub/MuJ1', lat:37.5447,lng:127.0473},
+  {d:'seongdong',n:24,dt:'26.01.22',p:10,  fl:'3/B1',la:16.64,ar:40.68,lm:55, am:134.49,addr:'성동구 금호산2길 11',         url:'https://tax.pub/8O9y',rd:'https://tax.pub/Vbey', lat:37.5537,lng:127.0175},
+  {d:'seongdong',n:25,dt:'26.01.22',p:13.5,fl:'2/B1',la:33.88,ar:37.68,lm:112,am:124.57,addr:'성동구 송정8길 10',           url:'https://tax.pub/rlYY',rd:'https://tax.pub/2u8t', lat:37.5675,lng:127.0450},
+  {d:'seongdong',n:26,dt:'26.01.22',p:15,  fl:'2/B1',la:28.13,ar:50.19,lm:93, am:165.92,addr:'성동구 난계로 61',            url:'https://tax.pub/7kAu',rd:'https://tax.pub/U3Aq', lat:37.5682,lng:127.0382},
+  {d:'seongdong',n:27,dt:'26.01.23',p:19,  fl:'2/B1',la:35.09,ar:52.03,lm:116,am:172,   addr:'성동구 송정4길 3',            url:'https://tax.pub/UGCe',rd:'https://tax.pub/QjzU', lat:37.5667,lng:127.0442},
+  {d:'seongdong',n:28,dt:'26.01.26',p:10.5,fl:'2/-', la:26.92,ar:45.1, lm:89, am:149.1, addr:'성동구 왕십리로31나길 21',    url:'https://tax.pub/oJbZ',rd:'https://tax.pub/tuI2', lat:37.5621,lng:127.0224},
+  {d:'seongdong',n:29,dt:'26.01.26',p:19,  fl:'1/B1',la:14.82,ar:14.31,lm:49, am:47.31, addr:'성동구 뚝섬로1가길 19-11',   url:'https://tax.pub/E0Cn',rd:'https://tax.pub/zEUA', lat:37.5449,lng:127.0476},
+  {d:'seongdong',n:30,dt:'26.01.27',p:12.5,fl:'2/B1',la:29.04,ar:37.36,lm:96, am:123.5, addr:'성동구 한림말길 22-30',       url:'https://tax.pub/Pk6X',rd:'https://tax.pub/Cq4R', lat:37.5498,lng:127.0135},
+];
+
+const DI={
+  mapo:     {name:'마포구',color:'#3b82f6',dim:'rgba(59,130,246,.14)'},
+  yongsan:  {name:'용산구',color:'#f59e0b',dim:'rgba(245,158,11,.14)'},
+  seongdong:{name:'성동구',color:'#10b981',dim:'rgba(16,185,129,.14)'},
+};
+
+/* ── STATE ── */
+let curF='all', curS='pa', sbOpen=true;
+let leafMap, markerGroup;
+
+/* ── HELPERS ── */
+function fp(p){const e=Math.floor(p),m=Math.round((p-e)*10000);return m?`${e}억 ${m.toLocaleString()}`:`${e}억`;}
+function hasSub(f){return f.toUpperCase().includes('B');}
+function filt(){
+  let r=curF==='all'?[...RAW]:RAW.filter(x=>x.d===curF);
+  const sorts={pa:(a,b)=>a.p-b.p,pd:(a,b)=>b.p-a.p,dd:(a,b)=>b.dt.localeCompare(a.dt),ld:(a,b)=>b.la-a.la,ad:(a,b)=>b.ar-a.ar};
+  r.sort(sorts[curS]);
+  return r;
+}
+
+/* ── STATS ── */
+function updStats(data){
+  const ps=data.map(x=>x.p),mn=Math.min(...ps),mx=Math.max(...ps),av=ps.reduce((a,b)=>a+b)/ps.length;
+  document.getElementById('sMin').textContent=fp(mn);
+  document.getElementById('sAvg').textContent=fp(av);
+  document.getElementById('sMax').textContent=fp(mx);
+  document.getElementById('sLand').textContent=(data.reduce((s,x)=>s+x.la,0)/data.length).toFixed(1);
+  document.getElementById('sArea').textContent=(data.reduce((s,x)=>s+x.ar,0)/data.length).toFixed(1);
+  document.getElementById('sBsmt').textContent=data.filter(x=>hasSub(x.fl)).length;
+  document.getElementById('mPins').textContent=data.length+'개';
+  document.getElementById('mAvg').textContent=fp(av);
+  document.getElementById('mMin').textContent=fp(mn);
+  document.getElementById('mMax').textContent=fp(mx);
+  document.getElementById('cntN').textContent=data.length;
+}
+function updChart(data){
+  const bk=[10,11,12,13,14,15,16,17,18,19,20],cnt={};bk.forEach(b=>cnt[b]=0);
+  data.forEach(x=>{const b=Math.floor(x.p);cnt[b]!==undefined?cnt[b]++:cnt[20]++;});
+  const mx=Math.max(...Object.values(cnt),1);
+  const clr={all:'var(--accent)',mapo:'var(--mapo)',yongsan:'var(--yongsan)',seongdong:'var(--seongdong)'}[curF];
+  document.getElementById('sbChart').innerHTML=bk.map(b=>`
+    <div class="sb-bw">
+      <div class="sb-b" style="height:${(cnt[b]/mx)*100}%;background:${clr};opacity:${cnt[b]>0?1:.14}" title="${b}억: ${cnt[b]}건"></div>
+      <div class="sb-bl">${b}</div>
+    </div>`).join('');
+}
+
+/* ── MAP PINS ── */
+function makeIcon(color,price){
+  const lbl=price%1===0?String(price):price.toFixed(1);
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="44" height="52" viewBox="0 0 44 52">
+    <defs><filter id="sh"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity=".55"/></filter></defs>
+    <ellipse cx="22" cy="49" rx="5.5" ry="2.2" fill="rgba(0,0,0,.32)"/>
+    <path d="M22 2C12.6 2 5 9.6 5 19c0 11.8 17 30 17 30S39 30.8 39 19C39 9.6 31.4 2 22 2z"
+          fill="${color}" filter="url(#sh)"/>
+    <circle cx="22" cy="19" r="10.5" fill="rgba(0,0,0,.2)"/>
+    <text x="22" y="16.5" text-anchor="middle" font-size="7.5" font-family="'Noto Sans KR',sans-serif" font-weight="900" fill="white">${lbl}</text>
+    <text x="22" y="24.5" text-anchor="middle" font-size="5" font-family="sans-serif" fill="rgba(255,255,255,.82)">억</text>
+  </svg>`;
+  return L.divIcon({html:svg,className:'',iconSize:[44,52],iconAnchor:[22,52],popupAnchor:[0,-54]});
+}
+
+function buildPopup(x){
+  const info=DI[x.d];
+  const cls=x.d==='yongsan'?'ys':x.d==='seongdong'?'sd':'';
+  return `<div class="pu">
+    <div class="pu-price" style="color:${info.color}">${fp(x.p)}</div>
+    <div class="pu-tag" style="background:${info.dim};color:${info.color}">${info.name} #${x.n}</div>
+    <div class="pu-addr">📍 서울특별시 ${x.addr}</div>
+    <div class="pu-grid">
+      <div class="pu-cell"><div class="pu-cl">대지면적</div><div class="pu-cv">${x.la}평 / ${x.lm}㎡</div></div>
+      <div class="pu-cell"><div class="pu-cl">총면적</div><div class="pu-cv">${x.ar}평 / ${x.am}㎡</div></div>
+      <div class="pu-cell"><div class="pu-cl">층수</div><div class="pu-cv">${x.fl}</div></div>
+      <div class="pu-cell"><div class="pu-cl">등록일</div><div class="pu-cv">${x.dt}</div></div>
+    </div>
+    <div class="pu-btns">
+      <a class="pu-btn pu-road" href="${naverMapUrl(x.addr)}" target="_blank">🗺 네이버지도</a>
+      <a class="pu-btn pu-vm" href="${vmUrl(x.d+'-'+x.n)}" target="_blank">🏠 밸류맵</a>
+    </div>
+  </div>`;
+}
+
+function refreshPins(data){
+  markerGroup.clearLayers();
+  const bounds=[];
+  data.forEach(x=>{
+    const m=L.marker([x.lat,x.lng],{icon:makeIcon(DI[x.d].color,x.p)});
+    m.bindPopup(buildPopup(x),{maxWidth:260,minWidth:240,className:'dark-popup'});
+    m.on('click',()=>{
+      document.querySelectorAll('.card.hl').forEach(c=>c.classList.remove('hl'));
+      const card=document.getElementById(`c-${x.d}-${x.n}`);
+      if(card){card.classList.add('hl');card.scrollIntoView({behavior:'smooth',block:'nearest'});}
+    });
+    markerGroup.addLayer(m);
+    bounds.push([x.lat,x.lng]);
+  });
+  if(bounds.length>0){
+    try{leafMap.fitBounds(bounds,{padding:[48,48],maxZoom:15});}catch(e){}
+  }
+  leafMap.invalidateSize();
+}
+
+/* ── SIDEBAR CARDS ── */
+function mkCard(x){
+  const info=DI[x.d];
+  const shortAddr=x.addr;
+  return `<div class="card ${x.d}" id="c-${x.d}-${x.n}" onclick="window.open('${x.url}','_blank')">
+    <div class="str"></div>
+    <div class="c-dt">${x.dt}</div>
+    <div class="c-r1">
+      <div class="c-price">${fp(x.p)}</div>
+      <div class="c-no">#${x.n}</div>
+    </div>
+    <div class="c-addr">📍 ${shortAddr}</div>
+    <div class="c-specs">
+      <div class="c-sp">대지 <b>${x.la}평</b></div>
+      <div class="c-sp">총 <b>${x.ar}평</b></div>
+      <div class="c-sp"><b>${x.fl}</b>층</div>
+    </div>
+    <div class="c-links">
+      <a class="cl cl-r" href="${naverMapUrl(x.addr)}" target="_blank" onclick="event.stopPropagation()">🗺 네이버지도</a>
+      <a class="cl cl-vm" href="${vmUrl(x.d+'-'+x.n)}" target="_blank" onclick="event.stopPropagation()">🏠 밸류맵</a>
+      <div class="cl cl-pin" onclick="event.stopPropagation();flyTo(${x.lat},${x.lng},'${x.d}',${x.n})">📍 지도</div>
+    </div>
+  </div>`;
+}
+
+/* ── SIDEBAR TOGGLE ── */
+function toggleSB(){
+  sbOpen=!sbOpen;
+  document.getElementById('sidebar').classList.toggle('closed',!sbOpen);
+  document.getElementById('sbTog').textContent=sbOpen?'☰':'⊞';
+  setTimeout(()=>leafMap&&leafMap.invalidateSize(),270);
+}
+
+/* ── RENDER ── */
+function render(){
+  const data=filt();
+  updStats(data);
+  updChart(data);
+
+  const list=document.getElementById('sbList');
+  const clrs={mapo:'var(--mapo)',yongsan:'var(--yongsan)',seongdong:'var(--seongdong)'};
+  if(curF==='all'){
+    list.innerHTML=['mapo','yongsan','seongdong'].map(dist=>{
+      const dd=data.filter(x=>x.d===dist);
+      if(!dd.length)return '';
+      return `<div class="grp-hd">
+        <div class="grp-d" style="background:${clrs[dist]}"></div>
+        <div class="grp-nm">${DI[dist].name}</div>
+        <div class="grp-cnt">${dd.length}개</div>
+      </div>${dd.map(mkCard).join('')}`;
+    }).join('');
+  } else {
+    const dd=data,info=DI[curF];
+    list.innerHTML=`<div class="grp-hd">
+      <div class="grp-d" style="background:${info.color}"></div>
+      <div class="grp-nm">${info.name}</div>
+      <div class="grp-cnt">${dd.length}개</div>
+    </div>${dd.map(mkCard).join('')}`;
+  }
+
+  if(leafMap) refreshPins(data);
+}
+
+function setF(f,btn){
+  curF=f;
+  document.querySelectorAll('.fb').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  render();
+}
+function setS(){curS=document.getElementById('srtSel').value;render();}
+
+function flyTo(lat,lng,dist,n){
+  if(!leafMap) return;
+  leafMap.flyTo([lat,lng],17,{duration:0.9});
+  setTimeout(()=>{
+    if(!markerGroup) return;
+    markerGroup.eachLayer(m=>{
+      const ll=m.getLatLng();
+      if(Math.abs(ll.lat-lat)<0.0003&&Math.abs(ll.lng-lng)<0.0003) m.openPopup();
+    });
+  },950);
+}
+</script>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(function initMap(){
+  leafMap = L.map('map',{zoomControl:true,preferCanvas:true})
+             .setView([37.5480,126.9850],13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    attribution:'© <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
+    maxZoom:19,
+  }).addTo(leafMap);
+  markerGroup=L.layerGroup().addTo(leafMap);
+  render();
+})();
+</script>
+</body>
+</html>

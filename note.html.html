@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BuildLens — 한줄 매물 노트</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Noto+Serif+KR:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #F7F4EE;
+  --paper: #FDFCF8;
+  --ink: #1C1712;
+  --ink2: #3D3528;
+  --muted: #8A7E6C;
+  --border: #E2D9C8;
+  --gold: #C8890A;
+  --gold-bg: #FFF8E6;
+  --green: #1A7A4A;
+  --green-bg: #EDFAF3;
+  --red: #C0392B;
+  --red-bg: #FDF0EE;
+  --blue: #1A5FA8;
+  --blue-bg: #EEF4FC;
+  --shadow: 0 2px 16px rgba(60,40,10,0.08);
+}
+
+body {
+  background: var(--bg);
+  font-family: 'Noto Sans KR', sans-serif;
+  color: var(--ink);
+  min-height: 100vh;
+}
+
+/* ── 헤더 ── */
+header {
+  background: var(--ink);
+  padding: 20px 40px;
+  display: flex; align-items: center; gap: 14px;
+}
+.logo-mark {
+  width: 36px; height: 36px;
+  background: var(--gold);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; flex-shrink: 0;
+}
+.logo-text h1 {
+  font-family: 'Noto Serif KR', serif;
+  font-size: 18px; font-weight: 700;
+  color: #fff; letter-spacing: -0.3px;
+}
+.logo-text p { font-size: 11px; color: #888; margin-top: 1px; }
+.hd-tag {
+  margin-left: auto;
+  background: rgba(200,137,10,0.2);
+  color: var(--gold);
+  font-size: 11px; font-weight: 700;
+  padding: 4px 12px; border-radius: 99px;
+  border: 1px solid rgba(200,137,10,0.3);
+}
+
+/* ── 검색 섹션 ── */
+.search-section {
+  background: var(--ink2);
+  padding: 36px 40px 32px;
+}
+.search-section h2 {
+  font-family: 'Noto Serif KR', serif;
+  font-size: 26px; font-weight: 700;
+  color: #fff; margin-bottom: 6px;
+  letter-spacing: -0.5px;
+}
+.search-section h2 span {
+  color: var(--gold);
+}
+.search-section p {
+  font-size: 13px; color: #999; margin-bottom: 20px;
+}
+.search-row {
+  display: flex; gap: 10px; max-width: 680px;
+}
+.addr-input {
+  flex: 1;
+  background: rgba(255,255,255,0.08);
+  border: 1.5px solid rgba(255,255,255,0.15);
+  border-radius: 12px;
+  padding: 14px 18px;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 15px; color: #fff;
+  outline: none;
+  transition: border-color 0.2s, background 0.2s;
+}
+.addr-input::placeholder { color: #666; }
+.addr-input:focus {
+  border-color: var(--gold);
+  background: rgba(255,255,255,0.12);
+}
+.search-btn {
+  background: var(--gold);
+  color: #fff; border: none; cursor: pointer;
+  border-radius: 12px; padding: 0 28px;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 14px; font-weight: 700;
+  white-space: nowrap;
+  transition: opacity 0.15s, transform 0.15s;
+  box-shadow: 0 4px 14px rgba(200,137,10,0.4);
+}
+.search-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+.search-btn:disabled { opacity: 0.5; pointer-events: none; }
+.samples {
+  display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px;
+}
+.sample {
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 99px; padding: 4px 13px;
+  font-size: 12px; color: #aaa; cursor: pointer;
+  transition: all 0.15s;
+}
+.sample:hover { background: rgba(200,137,10,0.15); border-color: var(--gold); color: var(--gold); }
+
+/* ── 메인 콘텐츠 ── */
+#main { max-width: 900px; margin: 0 auto; padding: 32px 24px 80px; }
+
+/* 빈 상태 */
+.empty {
+  text-align: center; padding: 80px 24px;
+}
+.empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
+.empty h3 {
+  font-family: 'Noto Serif KR', serif;
+  font-size: 20px; color: var(--muted); margin-bottom: 8px;
+}
+.empty p { font-size: 13px; color: #bbb; }
+
+/* 로딩 */
+.loading { text-align: center; padding: 80px 24px; }
+.spinner {
+  width: 40px; height: 40px; margin: 0 auto 20px;
+  border: 3px solid var(--border);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-steps {
+  display: flex; flex-direction: column; gap: 6px;
+  align-items: center; margin-top: 16px;
+}
+.ls { font-size: 13px; color: var(--muted); opacity: 0; transition: opacity 0.4s; }
+.ls.on { opacity: 1; color: var(--gold); }
+.ls.done { opacity: 1; color: var(--green); }
+
+/* ── 매물 노트 카드 ── */
+.note-wrap { animation: fadeUp 0.4s ease both; }
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* 상단 헤더 */
+.note-header {
+  background: var(--ink);
+  border-radius: 16px 16px 0 0;
+  padding: 24px 28px;
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+  flex-wrap: wrap;
+}
+.note-title {
+  font-family: 'Noto Serif KR', serif;
+  font-size: 22px; font-weight: 700;
+  color: #fff; letter-spacing: -0.5px;
+}
+.note-addr { font-size: 13px; color: #aaa; margin-top: 4px; }
+.note-meta { display: flex; gap: 8px; flex-wrap: wrap; }
+.meta-tag {
+  font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 99px;
+}
+.tag-gold { background: rgba(200,137,10,0.2); color: var(--gold); border: 1px solid rgba(200,137,10,0.3); }
+.tag-green { background: rgba(26,122,74,0.2); color: #4ade80; border: 1px solid rgba(26,122,74,0.3); }
+.tag-red { background: rgba(192,57,43,0.2); color: #f87171; border: 1px solid rgba(192,57,43,0.3); }
+.print-btn {
+  background: rgba(255,255,255,0.08); color: #ccc;
+  border: 1px solid rgba(255,255,255,0.15); border-radius: 8px;
+  padding: 6px 14px; font-size: 12px; cursor: pointer;
+  font-family: 'Noto Sans KR', sans-serif;
+  transition: all 0.15s; white-space: nowrap; align-self: flex-start;
+}
+.print-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+
+/* 가격 하이라이트 바 */
+.price-bar {
+  background: var(--gold-bg);
+  border: 1.5px solid rgba(200,137,10,0.2);
+  padding: 18px 28px;
+  display: flex; gap: 0; flex-wrap: wrap;
+}
+.price-item {
+  flex: 1; min-width: 160px;
+  padding: 0 24px 0 0;
+  border-right: 1px solid rgba(200,137,10,0.2);
+  margin-right: 24px;
+}
+.price-item:last-child { border-right: none; margin-right: 0; padding-right: 0; }
+.price-lbl { font-size: 11px; font-weight: 700; color: var(--gold); letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 4px; }
+.price-val { font-family: 'Noto Serif KR', serif; font-size: 24px; font-weight: 700; color: var(--ink); line-height: 1; }
+.price-sub { font-size: 12px; color: var(--muted); margin-top: 3px; }
+
+/* 노트 그리드 */
+.note-body {
+  background: var(--paper);
+  border: 1.5px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 16px 16px;
+  padding: 24px 28px;
+}
+
+.note-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+}
+
+.note-row {
+  display: flex; gap: 0;
+  border-bottom: 1px solid var(--border);
+  min-height: 52px;
+}
+.note-row:last-child { border-bottom: none; }
+.note-row.full { grid-column: 1 / -1; }
+
+.note-key {
+  width: 140px; flex-shrink: 0;
+  background: rgba(0,0,0,0.025);
+  padding: 12px 14px;
+  font-size: 11px; font-weight: 700;
+  color: var(--muted); letter-spacing: 0.3px;
+  border-right: 1px solid var(--border);
+  display: flex; align-items: flex-start;
+  line-height: 1.4;
+}
+.note-val {
+  flex: 1; padding: 12px 14px;
+  font-size: 13px; color: var(--ink2);
+  line-height: 1.7;
+  display: flex; align-items: flex-start;
+}
+.note-val.warn { color: var(--red); font-weight: 700; }
+.note-val.ok   { color: var(--green); font-weight: 700; }
+.note-val.hl   { color: var(--blue); font-weight: 600; }
+
+/* 섹션 구분 */
+.note-section-hd {
+  grid-column: 1 / -1;
+  background: var(--ink2);
+  padding: 8px 14px;
+  font-size: 11px; font-weight: 700;
+  color: rgba(255,255,255,0.6);
+  letter-spacing: 1.5px; text-transform: uppercase;
+}
+
+/* 하단 면책 */
+.disclaimer {
+  margin-top: 16px;
+  padding: 14px 18px;
+  background: var(--blue-bg);
+  border: 1px solid rgba(26,95,168,0.15);
+  border-radius: 10px;
+  font-size: 12px; color: var(--muted); line-height: 1.7;
+}
+.disclaimer strong { color: var(--blue); }
+
+/* 에러 */
+.err-box {
+  background: var(--red-bg); border: 1.5px solid rgba(192,57,43,0.2);
+  border-radius: 14px; padding: 28px; text-align: center;
+}
+.err-box h3 { color: var(--red); font-size: 16px; margin-bottom: 8px; }
+.err-box p  { font-size: 13px; color: var(--muted); line-height: 1.7; }
+
+@media (max-width: 620px) {
+  header { padding: 16px 20px; }
+  .search-section { padding: 24px 20px; }
+  .search-row { flex-direction: column; }
+  .search-btn { padding: 14px; }
+  .note-grid { grid-template-columns: 1fr; }
+  .note-row.full { grid-column: 1; }
+  .price-bar { flex-direction: column; gap: 14px; }
+  .price-item { border-right: none; margin-right: 0; padding-right: 0; border-bottom: 1px solid rgba(200,137,10,0.2); padding-bottom: 14px; }
+  .price-item:last-child { border-bottom: none; padding-bottom: 0; }
+  .note-header { flex-direction: column; }
+  #main { padding: 20px 16px 60px; }
+}
+
+@media print {
+  header, .search-section, .empty { display: none !important; }
+  #main { padding: 0 !important; }
+  .note-wrap { animation: none !important; }
+  body { background: #fff; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-mark">🏢</div>
+  <div class="logo-text">
+    <h1>BuildLens</h1>
+    <p>건물 매물 분석 플랫폼</p>
+  </div>
+  <div class="hd-tag">한줄 매물 노트</div>
+</header>
+
+<div class="search-section">
+  <h2>주소를 입력하면<br><span>매물 노트가 완성됩니다</span></h2>
+  <p>AI가 건물 정보·시세·임대 현황·개발 호재를 분석해 한 페이지로 정리합니다</p>
+  <div class="search-row">
+    <input class="addr-input" id="addrInput" type="text"
+           placeholder="예: 서울 강동구 성내동 438-8">
+    <button class="search-btn" id="searchBtn" onclick="analyze()">노트 생성</button>
+  </div>
+  <div class="samples">
+    <span class="sample" onclick="go('서울 강동구 성내동 438-8')">📍 성내동 438-8</span>
+    <span class="sample" onclick="go('서울 마포구 합정동 371-12')">📍 합정동 371-12</span>
+    <span class="sample" onclick="go('서울 성동구 성수동2가 289-2')">📍 성수동 289-2</span>
+    <span class="sample" onclick="go('서울 강남구 역삼동 825-10')">📍 역삼동 825-10</span>
+  </div>
+</div>
+
+<div id="main">
+  <div class="empty" id="emptyState">
+    <div class="empty-icon">📋</div>
+    <h3>매물 주소를 입력해주세요</h3>
+    <p>분석하고 싶은 건물 주소를 위에 입력하면<br>한줄 매물 노트가 자동으로 완성됩니다</p>
+  </div>
+</div>
+
+<script>
+// ── API 키 없음 - 서버 통해서 호출 ──────────────────
+
+// ── 헬퍼 ──────────────────────────────────────────
+function go(addr) {
+  document.getElementById('addrInput').value = addr;
+  analyze();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('addrInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') analyze();
+  });
+});
+
+let stepTimer = null;
+
+// ── 메인 분석 ──────────────────────────────────────
+async function analyze() {
+  const address = document.getElementById('addrInput').value.trim();
+  if (!address) { document.getElementById('addrInput').focus(); return; }
+
+  const main = document.getElementById('main');
+  const btn  = document.getElementById('searchBtn');
+
+  btn.disabled = true; btn.textContent = '분석 중...';
+  document.getElementById('emptyState').style.display = 'none';
+
+  main.innerHTML = renderLoading();
+
+  // 스텝 애니메이션
+  const steps = ['📋 건물 기본 정보 조회 중...', '💰 시세 및 실거래가 수집 중...', '🏪 상권 및 입지 분석 중...', '📝 매물 노트 작성 중...'];
+  let si = 0;
+  const tick = () => {
+    if (si > 0) {
+      const p = document.getElementById('ls'+(si-1));
+      if (p) { p.classList.remove('on'); p.classList.add('done'); p.textContent = '✅ ' + steps[si-1].slice(2); }
+    }
+    const c = document.getElementById('ls'+si);
+    if (c) c.classList.add('on');
+    si++;
+    if (si < steps.length) stepTimer = setTimeout(tick, 3000);
+  };
+  stepTimer = setTimeout(tick, 500);
+
+  try {
+    const data = await callAI(address);
+    clearTimeout(stepTimer);
+    main.innerHTML = renderNote(address, data);
+  } catch(e) {
+    clearTimeout(stepTimer);
+    main.innerHTML = `
+      <div class="err-box">
+        <h3>⚠️ 분석 실패</h3>
+        <p>${esc(e.message)}</p>
+        <p style="margin-top:8px;font-size:12px;">API 키를 확인하거나 잠시 후 다시 시도해주세요.</p>
+      </div>`;
+  }
+
+  btn.disabled = false; btn.textContent = '노트 생성';
+}
+
+// ── AI 호출 (Vercel 서버리스 통해서) ──────────────
+async function callAI(address) {
+  const res = await fetch('/api/analyze', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ address })
+  });
+
+  if (!res.ok) {
+    const e = await res.json().catch(() => ({}));
+    throw new Error(e.error || `서버 오류 (${res.status})`);
+  }
+
+  const json = await res.json();
+  if (!json.success) throw new Error(json.error || '분석 실패');
+  return json.data;
+}
+
+// ── 로딩 렌더 ─────────────────────────────────────
+function renderLoading() {
+  return `
+    <div class="loading">
+      <div class="spinner"></div>
+      <div style="font-size:15px;font-weight:700;color:var(--ink2)">매물 노트를 작성하고 있습니다</div>
+      <div class="loading-steps">
+        <div class="ls" id="ls0">📋 건물 기본 정보 조회 중...</div>
+        <div class="ls" id="ls1">💰 시세 및 실거래가 수집 중...</div>
+        <div class="ls" id="ls2">🏪 상권 및 입지 분석 중...</div>
+        <div class="ls" id="ls3">📝 매물 노트 작성 중...</div>
+      </div>
+    </div>`;
+}
+
+// ── 노트 렌더 ─────────────────────────────────────
+function renderNote(address, d) {
+  const 가격판단색 = d.가격판단 === '저평가' ? 'tag-green' : d.가격판단 === '고평가' ? 'tag-red' : 'tag-gold';
+  const 공실색 = d.공실 === '없음' ? 'ok' : d.공실 === '다수공실' ? 'warn' : '';
+  const 위반색 = d.위반건축 === '없음' ? 'ok' : d.위반건축 === '있음' ? 'warn' : '';
+  const 근저당색 = (d.근저당 === '없음' || !d.근저당) ? 'ok' : 'warn';
+
+  return `
+  <div class="note-wrap">
+
+    <div class="note-header">
+      <div>
+        <div class="note-title">📋 한줄 매물 노트</div>
+        <div class="note-addr">📍 ${esc(address)} · ${new Date().toLocaleDateString('ko-KR')} 기준</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
+        <div class="note-meta">
+          <span class="meta-tag ${가격판단색}">${esc(d.가격판단 || '분석중')}</span>
+          <span class="meta-tag ${d.공실==='없음'?'tag-green':'tag-red'}">${esc(d.공실==='없음'?'만실':'공실있음')}</span>
+          <span class="meta-tag ${d.위반건축==='없음'?'tag-green':'tag-red'}">${esc(d.위반건축==='없음'?'위반없음':'위반확인')}</span>
+        </div>
+        <button class="print-btn" onclick="window.print()">🖨️ 인쇄 / PDF</button>
+      </div>
+    </div>
+
+    <div class="price-bar">
+      <div class="price-item">
+        <div class="price-lbl">매매가</div>
+        <div class="price-val">${esc(d.매매가 || '-')}</div>
+        <div class="price-sub">호가 기준</div>
+      </div>
+      <div class="price-item">
+        <div class="price-lbl">평당단가</div>
+        <div class="price-val">${esc(d.평당단가 || '-')}</div>
+        <div class="price-sub">연면적 기준</div>
+      </div>
+      <div class="price-item">
+        <div class="price-lbl">시세</div>
+        <div class="price-val">${esc(d.시세 || '-')}</div>
+        <div class="price-sub">AI 추정</div>
+      </div>
+      <div class="price-item">
+        <div class="price-lbl">시세 임대료</div>
+        <div class="price-val" style="font-size:16px;padding-top:4px">${esc(d.시세임대료 || '-')}</div>
+        <div class="price-sub">월 기준</div>
+      </div>
+    </div>
+
+    <div class="note-body">
+      <div class="note-grid">
+
+        <div class="note-section-hd">🏗 건물 기본 정보</div>
+
+        <div class="note-row">
+          <div class="note-key">소재지</div>
+          <div class="note-val hl">${esc(d.소재지 || '-')}</div>
+        </div>
+        <div class="note-row">
+          <div class="note-key">준공 / 구조</div>
+          <div class="note-val">${esc(d.준공년도 || '-')} / ${esc(d.구조 || '-')}</div>
+        </div>
+        <div class="note-row">
+          <div class="note-key">용도지역</div>
+          <div class="note-val">${esc(d.용도지역 || '-')}</div>
+        </div>
+        <div class="note-row">
+          <div class="note-key">연면적</div>
+          <div class="note-val">${esc(d.연면적 || '-')}</div>
+        </div>
+        <div class="note-row full">
+          <div class="note-key">층수</div>
+          <div class="note-val">${esc(d.층수 || '-')}</div>
+        </div>
+
+        <div class="note-section-hd">📍 입지 · 상권 · 개발</div>
+
+        <div class="note-row full">
+          <div class="note-key">접근성</div>
+          <div class="note-val">${esc(d.접근성 || '-')}</div>
+        </div>
+        <div class="note-row full">
+          <div class="note-key">주변 상권</div>
+          <div class="note-val">${esc(d.주변상권 || '-')}</div>
+        </div>
+        <div class="note-row full">
+          <div class="note-key">개발 호재</div>
+          <div class="note-val ${d.개발호재==='없음'?'':'hl'}">${esc(d.개발호재 || '-')}</div>
+        </div>
+
+        <div class="note-section-hd">💰 거래 · 시세 정보</div>
+
+        <div class="note-row full">
+          <div class="note-key">최근 실거래</div>
+          <div class="note-val">${esc(d.최근실거래 || '-')}</div>
+        </div>
+        <div class="note-row">
+          <div class="note-key">3년 거래량</div>
+          <div class="note-val">${esc(d.거래량3년 || '-')}</div>
+        </div>
+        <div class="note-row">
+          <div class="note-key">비교 사례</div>
+          <div class="note-val">${esc(d.비교사례 || '-')}</div>
+        </div>
+
+        <div class="note-section-hd">🔑 임대 현황</div>
+
+        <div class="note-row full">
+          <div class="note-key">임대 구성</div>
+          <div class="note-val">${esc(d.임대구성 || '-')}</div>
+        </div>
+        <div class="note-row">
+          <div class="note-key">공실 여부</div>
+          <div class="note-val ${공실색}">${esc(d.공실 || '-')}</div>
+        </div>
+        <div class="note-row">
+          <div class="note-key">시세 임대료</div>
+          <div class="note-val">${esc(d.시세임대료 || '-')}</div>
+        </div>
+
+        <div class="note-section-hd">⚠️ 권리 · 위험 사항</div>
+
+        <div class="note-row">
+          <div class="note-key">근저당</div>
+          <div class="note-val ${근저당색}">${esc(d.근저당 || '-')}</div>
+        </div>
+        <div class="note-row">
+          <div class="note-key">불법증축/위반</div>
+          <div class="note-val ${위반색}">${esc(d.위반건축 || '-')}</div>
+        </div>
+        <div class="note-row full">
+          <div class="note-key">외관·구조 변화</div>
+          <div class="note-val">${esc(d.외관변화 || '-')}</div>
+        </div>
+
+        <div class="note-section-hd">🤖 AI 투자 의견</div>
+
+        <div class="note-row full">
+          <div class="note-key">투자 요약</div>
+          <div class="note-val" style="font-weight:500">${esc(d.투자요약 || '-')}</div>
+        </div>
+        <div class="note-row">
+          <div class="note-key">주요 리스크</div>
+          <div class="note-val warn">${esc(d.리스크 || '-')}</div>
+        </div>
+        <div class="note-row">
+          <div class="note-key">투자 기회</div>
+          <div class="note-val ok">${esc(d.기회 || '-')}</div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="disclaimer">
+      <strong>⚠️ 주의사항</strong> 본 매물 노트는 AI 추정 정보이며 실제 데이터와 다를 수 있습니다.
+      투자 결정 전 반드시 <strong>건축물대장(eais.go.kr)</strong> · <strong>등기부등본(iros.go.kr)</strong> ·
+      <strong>실거래가(rt.molit.go.kr)</strong> · 현장 방문을 통해 확인하시기 바랍니다.
+    </div>
+
+  </div>`;
+}
+
+// ── 유틸 ──────────────────────────────────────────
+function esc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
+</body>
+</html>
