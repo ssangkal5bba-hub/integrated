@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BuildLens — 건물 매입 올인원 플랫폼</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Noto+Serif+KR:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #F5F2EC; --paper: #FDFCF8; --ink: #1C1712; --ink2: #3D3528;
+  --muted: #8A7E6C; --border: #E2D9C8; --gold: #C8890A; --gold-bg: #FFF8E6;
+  --green: #1A7A4A; --green-bg: #EDFAF3; --red: #C0392B; --red-bg: #FDF0EE;
+  --blue: #1A5FA8; --blue-bg: #EEF4FC; --shadow: 0 2px 16px rgba(60,40,10,0.08);
+}
+body { background: var(--bg); font-family: 'Noto Sans KR', sans-serif; color: var(--ink); min-height: 100vh; }
+
+/* 로그인 화면 */
+#login-screen {
+  position: fixed; inset: 0; background: var(--ink);
+  display: flex; align-items: center; justify-content: center; z-index: 9999;
+}
+.login-box {
+  background: var(--paper); border-radius: 20px; padding: 48px 40px;
+  text-align: center; max-width: 380px; width: 90%;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.3);
+}
+.login-logo { font-size: 52px; margin-bottom: 12px; }
+.login-box h1 { font-family: 'Noto Serif KR', serif; font-size: 26px; font-weight: 700; margin-bottom: 6px; }
+.login-box p { font-size: 13px; color: var(--muted); margin-bottom: 28px; line-height: 1.7; }
+.google-btn {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  background: #fff; border: 2px solid var(--border); border-radius: 12px;
+  padding: 14px 24px; font-size: 14px; font-weight: 700; cursor: pointer;
+  font-family: 'Noto Sans KR', sans-serif; width: 100%; transition: all 0.2s; color: var(--ink);
+}
+.google-btn:hover { border-color: var(--gold); box-shadow: 0 4px 16px rgba(200,137,10,0.2); transform: translateY(-1px); }
+.google-btn img { width: 20px; height: 20px; }
+
+/* 헤더 */
+header {
+  background: var(--ink); padding: 16px 32px;
+  display: flex; align-items: center; gap: 12px;
+  position: sticky; top: 0; z-index: 100;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+}
+.logo { width: 36px; height: 36px; background: var(--gold); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+.logo-t h1 { font-family: 'Noto Serif KR', serif; font-size: 18px; font-weight: 700; color: #fff; }
+.logo-t p { font-size: 10px; color: #888; }
+.user-info { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.user-avatar { width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--gold); }
+.user-name { font-size: 12px; color: #ccc; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.logout-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15); color: #aaa; border-radius: 6px; padding: 5px 12px; font-size: 11px; cursor: pointer; font-family: 'Noto Sans KR', sans-serif; transition: all 0.15s; }
+.logout-btn:hover { background: var(--red-bg); color: var(--red); border-color: var(--red); }
+
+/* 히어로 */
+.hero {
+  background: linear-gradient(135deg, var(--ink) 0%, var(--ink2) 100%);
+  padding: 64px 32px 56px; text-align: center; position: relative; overflow: hidden;
+}
+.hero::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 60% 40%, rgba(200,137,10,0.12) 0%, transparent 60%);
+}
+.hero-badge {
+  display: inline-block; background: rgba(200,137,10,0.2); color: var(--gold);
+  border: 1px solid rgba(200,137,10,0.3); border-radius: 99px;
+  padding: 5px 14px; font-size: 11px; font-weight: 700; margin-bottom: 16px;
+  letter-spacing: 0.5px;
+}
+.hero h2 {
+  font-family: 'Noto Serif KR', serif; font-size: 36px; font-weight: 700;
+  color: #fff; margin-bottom: 12px; line-height: 1.3; position: relative;
+}
+.hero h2 span { color: var(--gold); }
+.hero p { font-size: 15px; color: #aaa; line-height: 1.7; position: relative; max-width: 480px; margin: 0 auto; }
+
+/* 유저 환영 */
+.welcome-bar {
+  background: var(--gold-bg); border-bottom: 1.5px solid rgba(200,137,10,0.2);
+  padding: 12px 32px; display: flex; align-items: center; gap: 10px;
+  font-size: 13px; color: var(--ink2);
+}
+.welcome-bar strong { color: var(--gold); }
+
+/* 앱 그리드 */
+.app-grid {
+  max-width: 1000px; margin: 0 auto; padding: 48px 24px 80px;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;
+}
+
+.app-card {
+  background: var(--paper); border: 1.5px solid var(--border); border-radius: 18px;
+  padding: 28px 24px; box-shadow: var(--shadow); transition: all 0.2s;
+  text-decoration: none; color: inherit; display: block; position: relative; overflow: hidden;
+}
+.app-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: var(--card-color, var(--gold)); border-radius: 18px 18px 0 0;
+}
+.app-card:hover { transform: translateY(-4px); box-shadow: 0 8px 32px rgba(60,40,10,0.14); border-color: var(--card-color, var(--gold)); }
+.card-icon { font-size: 36px; margin-bottom: 14px; display: block; }
+.card-tag {
+  display: inline-block; font-size: 10px; font-weight: 700; padding: 3px 9px;
+  border-radius: 99px; margin-bottom: 10px;
+  background: var(--card-tag-bg, var(--gold-bg)); color: var(--card-color, var(--gold));
+}
+.app-card h3 { font-family: 'Noto Serif KR', serif; font-size: 18px; font-weight: 700; margin-bottom: 8px; color: var(--ink); }
+.app-card p { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 18px; }
+.card-features { display: flex; flex-direction: column; gap: 5px; margin-bottom: 20px; }
+.card-feature { font-size: 12px; color: var(--ink2); display: flex; align-items: center; gap: 6px; }
+.card-feature::before { content: '✓'; color: var(--card-color, var(--gold)); font-weight: 700; flex-shrink: 0; }
+.card-btn {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  background: var(--card-color, var(--gold)); color: #fff;
+  border-radius: 10px; padding: 10px 20px; font-size: 13px; font-weight: 700;
+  transition: all 0.15s; width: 100%;
+}
+.app-card:hover .card-btn { filter: brightness(1.1); }
+.card-arrow { font-size: 14px; transition: transform 0.2s; }
+.app-card:hover .card-arrow { transform: translateX(4px); }
+
+/* 통계 바 */
+.stats-bar {
+  background: var(--ink2); padding: 24px 32px;
+  display: flex; justify-content: center; gap: 48px; flex-wrap: wrap;
+}
+.stat { text-align: center; }
+.stat-num { font-size: 28px; font-weight: 900; color: var(--gold); font-family: 'Noto Serif KR', serif; }
+.stat-label { font-size: 11px; color: #888; margin-top: 2px; }
+
+/* 토스트 */
+.toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--ink); color: #fff; border-radius: 10px; padding: 12px 24px; font-size: 13px; font-weight: 600; opacity: 0; pointer-events: none; transition: all 0.3s ease; z-index: 9999; white-space: nowrap; box-shadow: 0 4px 20px rgba(0,0,0,0.25); }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+@media (max-width: 600px) {
+  header { padding: 12px 16px; }
+  .hero { padding: 40px 20px 36px; }
+  .hero h2 { font-size: 26px; }
+  .app-grid { padding: 28px 16px 60px; grid-template-columns: 1fr; }
+  .stats-bar { gap: 24px; padding: 20px 16px; }
+  .user-name { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- 로그인 화면 -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">🏢</div>
+    <h1>BuildLens</h1>
+    <p>건물 매입 올인원 분석 플랫폼<br>Google 계정으로 로그인하면<br>모든 툴의 데이터가 자동 저장됩니다</p>
+    <button class="google-btn" onclick="signInWithGoogle()">
+      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+      Google로 로그인
+    </button>
+  </div>
+</div>
+
+<!-- 토스트 -->
+<div class="toast" id="toast"></div>
+
+<!-- 헤더 -->
+<header>
+  <div class="logo">🏢</div>
+  <div class="logo-t">
+    <h1>BuildLens</h1>
+    <p>건물 매입 올인원 플랫폼</p>
+  </div>
+  <div class="user-info" id="userInfo" style="display:none">
+    <img class="user-avatar" id="userAvatar" src="" alt="">
+    <span class="user-name" id="userName"></span>
+    <button class="logout-btn" onclick="signOut()">로그아웃</button>
+  </div>
+</header>
+
+<!-- 메인 콘텐츠 (로그인 후 표시) -->
+<div id="mainContent" style="display:none">
+
+  <!-- 환영 바 -->
+  <div class="welcome-bar">
+    👋 안녕하세요, <strong id="welcomeName"></strong>님! BuildLens에 오신 것을 환영합니다.
+  </div>
+
+  <!-- 히어로 -->
+  <div class="hero">
+    <div class="hero-badge">🏢 건물 매입 올인원 플랫폼</div>
+    <h2>건물 매입의 모든 과정,<br><span>BuildLens</span>로 한 번에</h2>
+    <p>AI 매물 분석부터 점수 비교, 재무 시뮬레이션까지<br>건물 매입에 필요한 모든 툴을 한 곳에서</p>
+  </div>
+
+  <!-- 통계 -->
+  <div class="stats-bar">
+    <div class="stat"><div class="stat-num">4</div><div class="stat-label">분석 툴</div></div>
+    <div class="stat"><div class="stat-num">AI</div><div class="stat-label">매물 노트 생성</div></div>
+    <div class="stat"><div class="stat-num">100점</div><div class="stat-label">매물 점수 시스템</div></div>
+    <div class="stat"><div class="stat-num">Cloud</div><div class="stat-label">데이터 자동 저장</div></div>
+  </div>
+
+  <!-- 앱 카드 그리드 -->
+  <div class="app-grid">
+
+    <!-- 1. 매물 점수 비교 -->
+    <a class="app-card" href="compare.html" style="--card-color:#C8890A;--card-tag-bg:#FFF8E6">
+      <span class="card-icon">📊</span>
+      <span class="card-tag">CORE 툴</span>
+      <h3>매물 점수 비교</h3>
+      <p>기준을 직접 설정하고 여러 매물을 점수로 비교 분석합니다</p>
+      <div class="card-features">
+        <div class="card-feature">필수·선택 기준 자유 설정</div>
+        <div class="card-feature">매물별 점수 슬라이더 입력</div>
+        <div class="card-feature">자동 순위 비교표 생성</div>
+        <div class="card-feature">Google 계정 데이터 저장</div>
+      </div>
+      <div class="card-btn">바로가기 <span class="card-arrow">→</span></div>
+    </a>
+
+    <!-- 2. AI 매물 노트 -->
+    <a class="app-card" href="note.html" style="--card-color:#1A5FA8;--card-tag-bg:#EEF4FC">
+      <span class="card-icon">🔍</span>
+      <span class="card-tag">AI 분석</span>
+      <h3>AI 매물 노트</h3>
+      <p>주소만 입력하면 AI가 건물 정보·시세·임대 현황을 한 페이지로 정리합니다</p>
+      <div class="card-features">
+        <div class="card-feature">주소 입력만으로 자동 분석</div>
+        <div class="card-feature">건물 정보·시세·개발 호재</div>
+        <div class="card-feature">임대 현황 자동 조사</div>
+        <div class="card-feature">한 페이지 매물 노트 완성</div>
+      </div>
+      <div class="card-btn" style="background:#1A5FA8">바로가기 <span class="card-arrow">→</span></div>
+    </a>
+
+    <!-- 3. 매물 대시보드 -->
+    <a class="app-card" href="dashboard.html" style="--card-color:#1A7A4A;--card-tag-bg:#EDFAF3">
+      <span class="card-icon">🏗</span>
+      <span class="card-tag">관리</span>
+      <h3>건물 매물 대시보드</h3>
+      <p>탐색 중인 매물들을 한눈에 관리하고 현황을 파악합니다</p>
+      <div class="card-features">
+        <div class="card-feature">매물 90개 일괄 관리</div>
+        <div class="card-feature">지역·가격·수익률 필터</div>
+        <div class="card-feature">매물 상태 추적</div>
+        <div class="card-feature">리스트·카드 뷰 전환</div>
+      </div>
+      <div class="card-btn" style="background:#1A7A4A">바로가기 <span class="card-arrow">→</span></div>
+    </a>
+
+    <!-- 4. 재무 분석 -->
+    <a class="app-card" href="finance.html" style="--card-color:#7B3FA0;--card-tag-bg:#F3EEFF">
+      <span class="card-icon">💰</span>
+      <span class="card-tag">재무</span>
+      <h3>재무 분석 리포트</h3>
+      <p>자산·대출·시나리오를 분석해 최적의 매입 전략을 도출합니다</p>
+      <div class="card-features">
+        <div class="card-feature">자산·대출 현황 분석</div>
+        <div class="card-feature">3가지 시나리오 비교</div>
+        <div class="card-feature">월 현금흐름 시뮬레이션</div>
+        <div class="card-feature">10년 투자 성과 전망</div>
+      </div>
+      <div class="card-btn" style="background:#7B3FA0">바로가기 <span class="card-arrow">→</span></div>
+    </a>
+
+  </div>
+</div>
+
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut as fbSignOut }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBi3rvgz50veHNdMt8Ma4QULzmkRx6EMa8",
+  authDomain: "building-zoo.firebaseapp.com",
+  projectId: "building-zoo",
+  storageBucket: "building-zoo.firebasestorage.app",
+  messagingSenderId: "1047799924801",
+  appId: "1:1047799924801:web:bb9698d6abd4ab8eec9ec0"
+};
+
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+
+window.signInWithGoogle = async () => {
+  try {
+    await signInWithPopup(auth, new GoogleAuthProvider());
+  } catch(e) {
+    showToast('로그인 실패: ' + e.message);
+  }
+};
+
+window.signOut = async () => {
+  await fbSignOut(auth);
+  showToast('로그아웃되었습니다');
+};
+
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    // 로그인 상태
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('mainContent').style.display = 'block';
+    document.getElementById('userInfo').style.display = 'flex';
+    document.getElementById('userAvatar').src = user.photoURL || '';
+    document.getElementById('userName').textContent = user.displayName || user.email;
+    document.getElementById('welcomeName').textContent = user.displayName?.split(' ')[0] || '회원';
+
+    // 로그인 토큰을 sessionStorage에 저장 (다른 페이지에서 활용)
+    sessionStorage.setItem('bl_user', JSON.stringify({
+      uid: user.uid,
+      name: user.displayName,
+      email: user.email,
+      photo: user.photoURL
+    }));
+  } else {
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('mainContent').style.display = 'none';
+    document.getElementById('userInfo').style.display = 'none';
+    sessionStorage.removeItem('bl_user');
+  }
+});
+
+let toastTimer = null;
+window.showToast = (msg) => {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
+};
+</script>
+</body>
+</html>
