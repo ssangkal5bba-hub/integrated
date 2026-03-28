@@ -423,12 +423,20 @@ async function saveToFirestore() {
 // ── Firestore 불러오기 ──
 async function loadUserData() {
   if (!currentUser) return;
+  let isNewUser = true;
   try {
     const snap = await getDoc(doc(db, 'users', currentUser.uid, 'data', 'main'));
     if (snap.exists()) {
       const data = snap.data();
-      if (data.criteria)   criteria    = data.criteria;
-      if (data.properties) properties  = data.properties;
+      // 저장된 데이터가 있을 때만 덮어씀
+      if (data.criteria && (data.criteria.must.length > 0 || data.criteria.opt.length > 0)) {
+        criteria = data.criteria;
+        isNewUser = false;
+      }
+      if (data.properties && data.properties.length > 0) {
+        properties = data.properties;
+        isNewUser = false;
+      }
       // id 시퀀스 복원
       if (criteria.must.length)  mustIdSeq = Math.max(...criteria.must.map(m => m.id), 10);
       if (criteria.opt.length)   optIdSeq  = Math.max(...criteria.opt.map(o => o.id), 10);
@@ -437,13 +445,18 @@ async function loadUserData() {
   } catch(e) {
     console.error('불러오기 오류:', e);
   }
+  // 항상 렌더링 (기존 데이터 or 기본값)
   renderCriteria();
   calcBudget();
   if (properties.length > 0) {
     renderPropTabs();
     renderPropForm(0);
   }
-  showToast('✅ 데이터를 불러왔습니다');
+  if (isNewUser) {
+    showToast('👋 처음 오셨군요! 기준을 설정해주세요');
+  } else {
+    showToast('✅ 저장된 데이터를 불러왔습니다');
+  }
 }
 
 // 저장 상태 표시
@@ -565,20 +578,8 @@ window.calcBudget = calcBudget;
 //  상태
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 let criteria = {
-  must: [
-    { id: 1, text: '거주 가능' },
-    { id: 2, text: '1층 직접 사용 가능' },
-    { id: 3, text: '30억 이하' },
-    { id: 4, text: '어머니 거주 가능 (전세)' }
-  ],
-  opt: [
-    { id: 1, text: '방배·이수·마포·신당·약수', score: 20 },
-    { id: 2, text: '역세권 (도보 5분)', score: 5 },
-    { id: 3, text: '수익률 2% 이상', score: 5 },
-    { id: 4, text: '인접도로 6m 이상', score: 5 },
-    { id: 5, text: '유동인구 우수', score: 30 },
-    { id: 6, text: '주차 2대 이상', score: 35 }
-  ]
+  must: [],
+  opt: []
 };
 let properties     = [];
 let currentPropIdx = 0;
@@ -840,8 +841,8 @@ function renderCompare() {
 }
 window.renderCompare = renderCompare;
 
-// 초기 실행
-renderCriteria();
+// 초기 실행 - Firebase 인증 후 loadUserData()에서 렌더링하므로 여기선 calcBudget만
+// renderCriteria()는 loadUserData() 안에서 실행됨
 calcBudget();
 
 </script>
