@@ -438,9 +438,9 @@ function renderBudgetScContent() {
       <div class="brow-label">${esc(l.label)}</div>
       <div style="display:flex;gap:4px;align-items:center">
         <input type="number" class="b-input" style="width:110px" placeholder="금액(만원)" value="${l.amt||''}"
-               oninput="budgetScenarios[${activeBudgetSc}].loans[${li}].amt=+this.value;calcBudget()">
+               oninput="setBudgetLoan(${li},'amt',+this.value)">
         <input type="number" class="b-input" style="width:58px" placeholder="%" value="${l.rate||''}"
-               oninput="budgetScenarios[${activeBudgetSc}].loans[${li}].rate=+this.value;calcBudget()">
+               oninput="setBudgetLoan(${li},'rate',+this.value)">
         <span class="b-unit">%</span>
       </div>
     </div>`).join('');
@@ -455,7 +455,7 @@ function renderBudgetScContent() {
             <div class="brow-label">${label}<span class="brow-hint">${hint}</span></div>
             <div class="brow-input-wrap">
               <input type="number" class="b-input" placeholder="0" value="${a[key]||''}"
-                     oninput="budgetScenarios[${activeBudgetSc}].assets.${key}=+this.value;calcBudget()">
+                     oninput="setBudgetAsset('${key}',+this.value)">
               <span class="b-unit">만원</span>
             </div>
           </div>`).join('')}
@@ -480,7 +480,7 @@ function renderBudgetScContent() {
             <div class="brow-label">월 최대 저축 가능 금액</div>
             <div class="brow-input-wrap">
               <input type="number" class="b-input" placeholder="0" value="${s.monthly||''}"
-                     oninput="budgetScenarios[${activeBudgetSc}].saving.monthly=+this.value;calcBudget()">
+                     oninput="setBudgetSaving('monthly',+this.value)">
               <span class="b-unit">만원</span>
             </div>
           </div>
@@ -488,7 +488,7 @@ function renderBudgetScContent() {
             <div class="brow-label">매물탐색 ~ 잔금 기간<span class="brow-hint">탐색·계약·잔금까지 예상 기간</span></div>
             <div class="brow-input-wrap">
               <input type="number" class="b-input" placeholder="10" value="${s.months||10}"
-                     oninput="budgetScenarios[${activeBudgetSc}].saving.months=+this.value;calcBudget()">
+                     oninput="setBudgetSaving('months',+this.value)">
               <span class="b-unit">개월</span>
             </div>
           </div>
@@ -555,6 +555,37 @@ function calcBudget() {
   autoSave();
 }
 window.calcBudget = calcBudget;
+
+// ── 인라인 핸들러용 헬퍼 함수들 ──
+window.setBudgetAsset = (key, val) => {
+  if (!budgetScenarios.length) return;
+  budgetScenarios[activeBudgetSc].assets[key] = val;
+  calcBudget();
+};
+window.setBudgetLoan = (li, field, val) => {
+  if (!budgetScenarios.length) return;
+  budgetScenarios[activeBudgetSc].loans[li][field] = val;
+  calcBudget();
+};
+window.setBudgetSaving = (field, val) => {
+  if (!budgetScenarios.length) return;
+  budgetScenarios[activeBudgetSc].saving[field] = val;
+  calcBudget();
+};
+
+// ── 전역 변수 노출 (oninput 등 인라인 핸들러에서 접근 위해) ──
+Object.defineProperty(window, 'budgetScenarios', {
+  get: () => budgetScenarios, set: (v) => { budgetScenarios = v; }
+});
+Object.defineProperty(window, 'criteriaScenarios', {
+  get: () => criteriaScenarios, set: (v) => { criteriaScenarios = v; }
+});
+Object.defineProperty(window, 'activeBudgetSc', {
+  get: () => activeBudgetSc, set: (v) => { activeBudgetSc = v; }
+});
+Object.defineProperty(window, 'properties', {
+  get: () => properties, set: (v) => { properties = v; }
+});
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 //  기준 설정 시나리오
